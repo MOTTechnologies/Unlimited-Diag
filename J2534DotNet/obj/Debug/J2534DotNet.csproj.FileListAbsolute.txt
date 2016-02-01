@@ -1,0 +1,4 @@
+C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\J2534DotNet-master\J2534DotNet\bin\Debug\J2534DotNet.dll
+C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\J2534DotNet-master\J2534DotNet\bin\Debug\J2534DotNet.pdb
+C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\J2534DotNet-master\J2534DotNet\obj\Debug\J2534DotNet.dll
+C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\J2534DotNet-master\J2534DotNet\obj\Debug\J2534DotNet.pdb
