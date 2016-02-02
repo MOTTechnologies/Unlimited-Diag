@@ -94,6 +94,13 @@ namespace J2534DotNet
 
             return returnValue;
         }
+        public J2534Err WriteMsgs(int channelId, ref List<PassThruMsg> msglist, ref int numMsgs, int timeout)
+        {   //TODO: Finish this overload to use List<>
+            IntPtr pMsg = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UnsafePassThruMsg)) * 180);    //180 is the max number of expected messages.  This should probably be defined with a const or something of the sort.
+            UnsafePassThruMsg uMsg = ConvertPassThruMsg(msg);
+            // TODO: change function to accept a list? of PassThruMsg
+            return (J2534Err)m_wrapper.WriteMsgs(channelId, ref uMsg, ref numMsgs, timeout);
+        }
 
         public J2534Err WriteMsgs(int channelId, ref PassThruMsg msg, ref int numMsgs, int timeout)
         {
