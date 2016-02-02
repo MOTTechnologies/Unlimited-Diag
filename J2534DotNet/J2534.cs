@@ -75,9 +75,8 @@ namespace J2534DotNet
 
         public J2534Err ReadMsgs(int channelId, ref List<PassThruMsg> msgs, ref int numMsgs, int timeout)
         {
-            IntPtr pMsg = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UnsafePassThruMsg))*50);
+            IntPtr pMsg = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UnsafePassThruMsg)) * numMsgs);
             IntPtr pNextMsg = IntPtr.Zero;
-            IntPtr[] pMsgs = new IntPtr[50];
             J2534Err returnValue = (J2534Err)m_wrapper.ReadMsgs(channelId, pMsg, ref numMsgs, timeout);
             
             if (returnValue == J2534Err.STATUS_NOERROR)
@@ -95,18 +94,32 @@ namespace J2534DotNet
             return returnValue;
         }
         public J2534Err WriteMsgs(int channelId, ref List<PassThruMsg> msglist, ref int numMsgs, int timeout)
-        {   //TODO: Finish this overload to use List<>
-            IntPtr pMsg = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UnsafePassThruMsg)) * 180);    //180 is the max number of expected messages.  This should probably be defined with a const or something of the sort.
-            UnsafePassThruMsg uMsg = ConvertPassThruMsg(msg);
-            // TODO: change function to accept a list? of PassThruMsg
-            return (J2534Err)m_wrapper.WriteMsgs(channelId, ref uMsg, ref numMsgs, timeout);
+        {
+            IntPtr pNextMsg = IntPtr.Zero;
+            IntPtr u_msg_list = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UnsafePassThruMsg)) * numMsgs);
+            UnsafePassThruMsg u_msg;
+
+            for (int i = 0; i < numMsgs; i++)
+            {
+                pNextMsg = (IntPtr)(Marshal.SizeOf(typeof(UnsafePassThruMsg)) * i + (int)u_msg_list);
+                u_msg = ConvertPassThruMsg(msglist[i]);
+                Marshal.StructureToPtr(u_msg, pNextMsg, false);
+            }
+
+            J2534Err return_value = (J2534Err)m_wrapper.WriteMsgs(channelId, u_msg_list, ref numMsgs, timeout);
+            Marshal.FreeHGlobal(u_msg_list);
+            return return_value;
         }
 
-        public J2534Err WriteMsgs(int channelId, ref PassThruMsg msg, ref int numMsgs, int timeout)
+        public J2534Err WriteMsgs(int channelId, ref PassThruMsg msg, int timeout)
         {
+            int numMsgs = 1;
             UnsafePassThruMsg uMsg = ConvertPassThruMsg(msg);
-            // TODO: change function to accept a list? of PassThruMsg
-            return (J2534Err)m_wrapper.WriteMsgs(channelId, ref uMsg, ref numMsgs, timeout);
+            IntPtr u_msg_ptr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UnsafePassThruMsg)));
+            Marshal.StructureToPtr(uMsg, u_msg_ptr, false);
+            J2534Err return_value = (J2534Err)m_wrapper.WriteMsgs(channelId, u_msg_ptr, ref numMsgs, timeout);
+            Marshal.FreeHGlobal(u_msg_ptr);
+            return return_value;
         }
 
         public J2534Err StartPeriodicMsg(int channelId, ref PassThruMsg msg, ref int msgId, int timeInterval)
