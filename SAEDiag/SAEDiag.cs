@@ -11,14 +11,14 @@ namespace SAEDiag
     {
         private IJ2534 j2534_interface;
 
-        public ProtocolID protocol {get; set;};
-        public int channel_id {get; set;};
+        public ProtocolID protocol {get; set;}
+        public int channel_id {get; set;}
 
         public SAEDiag(IJ2534 j2534Interface)
         {
             j2534_interface = j2534Interface;
-            protocol = ProtocolID.ISO15765;
-            status = J2534Err.STATUS_NOERROR;
+            protocol = ProtocolID.ISO15765; //Default to ISO15765
+            channel_id = 0;
         }
 
         private SAE_data get_pid(byte mode, byte pid)
@@ -26,7 +26,10 @@ namespace SAEDiag
 
             byte[] rec_msg = new byte[8];
             SAE_data pid_msg = new SAE_data();
-
+            J2534Err status;
+            PassThruMsg tx_msg, rx_msg = new PassThruMsg();
+            int num_msgs;
+ 
             switch (protocol)
             {
                 case ProtocolID.CAN:
@@ -40,19 +43,34 @@ namespace SAEDiag
                 default:
                     break;
 
-                    m_status = m_j2534Interface.WriteMsgs(m_channelId, ref txMsg, ref numMsgs, timeout);
-            if (J2534Err.STATUS_NOERROR != m_status)
+            status = j2534_interface.WriteMsgs(channel_id, ref tx_msg, 500);
+
+            if (J2534Err.STATUS_NOERROR != status)
             {
-                return false;
+                //TODO: Throw exception or something...
+                return pid_msg;
             }
 
-            numMsgs = 1;
-            while (J2534Err.STATUS_NOERROR == m_status)
-	        {
-                m_status = m_j2534Interface.ReadMsgs(m_channelId, ref rxMsgs, ref numMsgs, timeout * 4);
-	        }
+            //**********************************************************************************
+            //The following read block should be moved into a generic read function that caches
+            //old messages that dont match a case by case filter.
+            //This will pave the way for multiple threads interacting simultaniously with the vehicle.
+            //Application for this would be simultainous datalogging of both PCM and TCM
+            //by independant threads.  Same goes for reading and writing.  Reflash both modules
+            //at the same time!
+            //This method should probably reside in the J2534 class
+            //***********************************************************************************
 
-            if (J2534Err.ERR_BUFFER_EMPTY == m_status || J2534Err.ERR_TIMEOUT == m_status)
+            status = j2534_interface.ReadMsgs(channel_id, ref rx_msg, 500);
+
+            if (status != J2534Err.STATUS_NOERROR)
+            {
+                //TODO: Throw exception or something...
+                return pid_msg;
+            }
+
+
+            if (J2534Err.ERR_BUFFER_EMPTY == status || J2534Err.ERR_TIMEOUT == m_status)
             {
                 if (rxMsgs.Count > 1)
                 {

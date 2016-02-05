@@ -93,6 +93,22 @@ namespace J2534DotNet
 
             return returnValue;
         }
+        public J2534Err ReadMsgs(int channelId, ref PassThruMsg msg, int timeout)
+        {
+            int numMsgs = 1;
+            IntPtr u_msg_ptr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UnsafePassThruMsg)));
+            J2534Err returnValue = (J2534Err)m_wrapper.ReadMsgs(channelId, u_msg_ptr, ref numMsgs, timeout);
+
+            if (returnValue == J2534Err.STATUS_NOERROR)
+            {
+                UnsafePassThruMsg uMsg = (UnsafePassThruMsg)Marshal.PtrToStructure(u_msg_ptr, typeof(UnsafePassThruMsg));
+                msg = ConvertPassThruMsg(uMsg);
+            }
+
+            Marshal.FreeHGlobal(u_msg_ptr);
+
+            return returnValue;
+        }
         public J2534Err WriteMsgs(int channelId, ref List<PassThruMsg> msglist, ref int numMsgs, int timeout)
         {
             IntPtr pNextMsg = IntPtr.Zero;

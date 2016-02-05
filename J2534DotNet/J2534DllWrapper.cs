@@ -84,7 +84,7 @@ namespace J2534DotNet
         //)
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate int PassThruWriteMsgs(int channelId, ref UnsafePassThruMsg msg, ref int numMsgs, int timeout);
+        public delegate int PassThruWriteMsgs(int channelId, IntPtr msg, ref int numMsgs, int timeout);
         public PassThruWriteMsgs WriteMsgs;
         //extern “C” long WINAPI PassThruWriteMsgs
         //(
