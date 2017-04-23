@@ -1,0 +1,10 @@
+C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\Sample\obj\Debug\Unlimited Diag.csprojResolveAssemblyReference.cache
+C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\Sample\obj\Debug\UnlimitedDiag.Form1.resources
+C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\Sample\obj\Debug\Unlimited Diag.csproj.GenerateResource.Cache
+C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\Sample\bin\Debug\Unlimited-Diag.exe
+C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\Sample\bin\Debug\Unlimited-Diag.pdb
+C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\Sample\bin\Debug\J2534DotNet.dll
+C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\Sample\bin\Debug\J2534DotNet.pdb
+C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\Sample\obj\Debug\Unlimited-Diag.exe
+C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\Sample\obj\Debug\Unlimited-Diag.pdb
+C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\Sample\obj\Debug\UnlimitedDiag._2534_device_selection_form.resources

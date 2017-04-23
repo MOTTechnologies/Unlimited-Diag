@@ -30,13 +30,14 @@ using System.Linq;
 using System.Windows.Forms;
 using J2534DotNet;
 
-namespace Sample
+namespace UnlimitedDiag
 {
     public partial class Form1 : Form
     {
         public Form1()
         {
             InitializeComponent();
+            Application.Run(new _2534_device_selection_form());
         }
 
         /*
@@ -46,31 +47,7 @@ namespace Sample
          */
         private void CmdDetectDevicesClick(object sender, EventArgs e)
         {
-            // Calling J2534.GetAvailableDevices() will return a list of installed J2534 devices
-            List<J2534Device> availableJ2534Devices = J2534Detect.ListDevices();
-            if (availableJ2534Devices.Count == 0)
-            {
-                MessageBox.Show("Could not find any installed J2534 devices.");
-                return;
-            }
-
-            foreach (J2534Device device in availableJ2534Devices)
-            {
-                txtDevices.Text += device.Name + ", " + device.Vendor + "\r\n\r\n";
-                txtDevices.Text += "\tConfig Application:\t" + device.ConfigApplication + "\r\n";
-                txtDevices.Text += "\tFunction Library:\t" + device.FunctionLibrary + "\r\n\r\n";
-                txtDevices.Text += "\tProtocol\t\tChannels\r\n";
-                txtDevices.Text += "\tCAN\t\t" + device.CANChannels + "\r\n";
-                txtDevices.Text += "\tISO15765\t" + device.ISO15765Channels + "\r\n";
-                txtDevices.Text += "\tISO14230\t" + device.ISO14230Channels + "\r\n";
-                txtDevices.Text += "\tISO9141\t\t" + device.ISO9141Channels + "\r\n";
-                txtDevices.Text += "\tJ1850PWM\t" + device.J1850PWMChannels + "\r\n";
-                txtDevices.Text += "\tJ1850PWM\t" + device.J1850VPWChannels + "\r\n";
-                txtDevices.Text += "\tSCI_A_ENGINE\t" + device.SCI_A_ENGINEChannels + "\r\n";
-                txtDevices.Text += "\tSCI_A_TRANS\t" + device.SCI_A_TRANSChannels + "\r\n";
-                txtDevices.Text += "\tSCI_B_ENGINE\t" + device.SCI_B_ENGINEChannels + "\r\n";
-                txtDevices.Text += "\tSCI_B_TRANS\t" + device.SCI_B_TRANSChannels + "\r\n\r\n";
-            }
+            Application.Run(new _2534_device_selection_form());
         }
 
         /*
@@ -123,7 +100,7 @@ namespace Sample
                 TxFlag.ISO15765_FRAME_PAD,
                 new byte[] { 0x00, 0x00, 0x07, 0xdf, 0x01, 0x00 });
             int numMsgs = 1;
-            passThru.WriteMsgs(channelId, ref txMsg, ref numMsgs, 50);
+            passThru.WriteMsgs(channelId, ref txMsg, 50);
 
             // Read messages in a loop until we either timeout or we receive data
             List<PassThruMsg> rxMsgs = new List<PassThruMsg>();

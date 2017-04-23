@@ -29,7 +29,7 @@ using System.Linq;
 using System.Text;
 using J2534DotNet;
 
-namespace Sample
+namespace UnlimitedDiag
 {
     public class ObdComm
     {
@@ -270,7 +270,7 @@ namespace Sample
 	        m_j2534Interface.ClearRxBuffer(m_channelId);
 
 	        int numMsgs = 1;
-            m_status = m_j2534Interface.WriteMsgs(m_channelId, ref txMsg, ref numMsgs, timeout);
+            m_status = m_j2534Interface.WriteMsgs(m_channelId, ref txMsg, timeout);
             if (J2534Err.STATUS_NOERROR != m_status)
             {
                 return false;

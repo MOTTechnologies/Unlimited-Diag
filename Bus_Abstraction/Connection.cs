@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace Bus_Abstraction
 {
-    public class Class1
+    public class Connection
     {
+
     }
 }

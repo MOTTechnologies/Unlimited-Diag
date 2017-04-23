@@ -1,4 +1,4 @@
-﻿namespace Sample
+﻿namespace UnlimitedDiag
 {
     partial class Form1
     {
@@ -29,7 +29,6 @@
         private void InitializeComponent()
         {
             this.cmdDetectDevices = new System.Windows.Forms.Button();
-            this.txtDevices = new System.Windows.Forms.TextBox();
             this.cmdReadVoltage = new System.Windows.Forms.Button();
             this.txtVoltage = new System.Windows.Forms.TextBox();
             this.cmdReadVin = new System.Windows.Forms.Button();
@@ -46,18 +45,9 @@
             this.cmdDetectDevices.UseVisualStyleBackColor = true;
             this.cmdDetectDevices.Click += new System.EventHandler(this.CmdDetectDevicesClick);
             // 
-            // txtDevices
-            // 
-            this.txtDevices.Location = new System.Drawing.Point(173, 15);
-            this.txtDevices.Multiline = true;
-            this.txtDevices.Name = "txtDevices";
-            this.txtDevices.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txtDevices.Size = new System.Drawing.Size(429, 160);
-            this.txtDevices.TabIndex = 1;
-            // 
             // cmdReadVoltage
             // 
-            this.cmdReadVoltage.Location = new System.Drawing.Point(12, 188);
+            this.cmdReadVoltage.Location = new System.Drawing.Point(12, 246);
             this.cmdReadVoltage.Name = "cmdReadVoltage";
             this.cmdReadVoltage.Size = new System.Drawing.Size(155, 23);
             this.cmdReadVoltage.TabIndex = 2;
@@ -67,14 +57,14 @@
             // 
             // txtVoltage
             // 
-            this.txtVoltage.Location = new System.Drawing.Point(173, 190);
+            this.txtVoltage.Location = new System.Drawing.Point(172, 248);
             this.txtVoltage.Name = "txtVoltage";
             this.txtVoltage.Size = new System.Drawing.Size(429, 20);
             this.txtVoltage.TabIndex = 3;
             // 
             // cmdReadVin
             // 
-            this.cmdReadVin.Location = new System.Drawing.Point(12, 217);
+            this.cmdReadVin.Location = new System.Drawing.Point(12, 275);
             this.cmdReadVin.Name = "cmdReadVin";
             this.cmdReadVin.Size = new System.Drawing.Size(155, 23);
             this.cmdReadVin.TabIndex = 4;
@@ -84,7 +74,7 @@
             // 
             // txtReadVin
             // 
-            this.txtReadVin.Location = new System.Drawing.Point(174, 219);
+            this.txtReadVin.Location = new System.Drawing.Point(173, 277);
             this.txtReadVin.Name = "txtReadVin";
             this.txtReadVin.Size = new System.Drawing.Size(428, 20);
             this.txtReadVin.TabIndex = 5;
@@ -93,12 +83,11 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(614, 430);
+            this.ClientSize = new System.Drawing.Size(918, 422);
             this.Controls.Add(this.txtReadVin);
             this.Controls.Add(this.cmdReadVin);
             this.Controls.Add(this.txtVoltage);
             this.Controls.Add(this.cmdReadVoltage);
-            this.Controls.Add(this.txtDevices);
             this.Controls.Add(this.cmdDetectDevices);
             this.Name = "Form1";
             this.Text = "J2534DotNet Sample";
@@ -110,7 +99,6 @@
         #endregion
 
         private System.Windows.Forms.Button cmdDetectDevices;
-        private System.Windows.Forms.TextBox txtDevices;
         private System.Windows.Forms.Button cmdReadVoltage;
         private System.Windows.Forms.TextBox txtVoltage;
         private System.Windows.Forms.Button cmdReadVin;

@@ -136,7 +136,7 @@ namespace SAEDiag
         REQ_PID_SCALING = 0x24,
         STOP_DATA_TX = 0x25,
         SET_DATA_RATE = 0x26,
-        SECURITY_ACCESS = 0x27,
+        REQ_SECURITY_ACCESS = 0x27,
         STOP_NORMAL_TRAFFIC = 0x28,
         RESUME_NORMAL_TRAFFIC = 0x29,
         REQ_DATA_PACKET = 0x2A,

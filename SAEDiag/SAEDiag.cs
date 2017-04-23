@@ -7,7 +7,7 @@ using J2534DotNet;
 
 namespace SAEDiag
 {
-    public class SAEDiag : SAE_data
+    public class SAEDiag
     {
         private IJ2534 j2534_interface;
 

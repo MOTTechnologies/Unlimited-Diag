@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
 
-namespace Sample
+namespace UnlimitedDiag
 {
     static class Program
     {
