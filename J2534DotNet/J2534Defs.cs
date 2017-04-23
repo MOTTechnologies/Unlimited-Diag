@@ -227,7 +227,7 @@ namespace J2534DotNet
         FIVE_BAUD_MOD = 0x21,
         BS_TX = 0x22,
         STMIN_TX = 0x23,
-        T3_MAX = 0x24,
+        //T3_MAX = 0x24,
         ISO15765_WFT_MAX = 0x25,
         ISO15765_SIMULTANEOUS = 0x10000000, /*DT*/ 
         DT_ISO15765_PAD_BYTE = 0x10000001,  /*DT*/
