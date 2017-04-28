@@ -1,26 +1,8 @@
 ﻿using System;
-//using System.Collections.Generic;
-//using System.Linq;
-//using System.Text;
-//using System.Threading.Tasks;
 
 namespace SAEDiag
 {
-    /*
-    public class SAE_data
-    {
-        public int mode;
-        public int pid { get; set; }
-        public byte[] data;
-        public SAE_data()
-        {
-            mode = 0;
-            pid = 0;
-            data = new byte[8];
-        }
-    }
-    */
-	internal class SAE_message
+	public class SAE_message
 	{
 		static public int size = 16;
 		private byte[] message_bytes = new byte[size];
@@ -110,7 +92,7 @@ namespace SAEDiag
 			}
 		}		
 	}
-    internal enum SAE_modes
+    public enum SAE_modes
     {
         REQ_DIAG_DATA = 0x01,
         REQ_FREEZE_FRAME_DATA = 0x02,
@@ -161,7 +143,7 @@ namespace SAEDiag
         UNKNOWN_MODE
     }
     [Flags]
-    internal enum SAE_DTC_status
+    public enum SAE_DTC_status
     {
         IMMATURE = 0x01,    //0 Maturing/intermittent code - insufficient data to consider as a malfunction
         OCCURING_NOW = 0x02,    //Current code - present at time of request
@@ -172,7 +154,7 @@ namespace SAEDiag
         PENDING = 0x40, //Warning lamp pending for this code, not illuminate but malfunction was detected
         MIL_ON = 0x80   //Warning lamp illuminated for this code
     }
-	internal enum SAE_responses
+	public enum SAE_responses
 	{
 		AFFIRMITIVE_RESPONSE = 0x00,
 		GENERAL_REJECT = 0x10,

@@ -3,24 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using OBD_Connection;
 using J2534DotNet;
 
 namespace SAEDiag
 {
     public class SAEDiag
     {
-        private IJ2534 j2534_interface;
+        public Channel Channel;
 
-        public ProtocolID protocol {get; set;}
-        public int channel_id {get; set;}
-
-        public SAEDiag(IJ2534 j2534Interface)
+        public bool SendSAEMsg(SAE_message Msg)
         {
-            j2534_interface = j2534Interface;
-            protocol = ProtocolID.ISO15765; //Default to ISO15765
-            channel_id = 0;
-        }
+            Channel.SendMessage(Msg);
 
+            return true;    //failure
+        }
         private SAE_data get_pid(byte mode, byte pid)
         {            
 

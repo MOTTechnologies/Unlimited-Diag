@@ -52,7 +52,7 @@ namespace J2534DotNet
         public static extern bool FreeLibrary(IntPtr hModule);
     }
 
-    internal class J2534DllWrapper
+    internal class J2534APIWrapper
     {
         private IntPtr m_pDll;
 

@@ -30,15 +30,16 @@ using System.Runtime.InteropServices;
 
 namespace J2534DotNet
 {
-    public class J2534 : IJ2534
+    public class J2534// : IJ2534
     {
         private J2534Device m_device;
-        private J2534DllWrapper m_wrapper;
+        private J2534APIWrapper m_wrapper;
+        public int deviceID;
 
         public bool LoadLibrary(J2534Device device)
         {
             m_device = device;
-            m_wrapper = new J2534DllWrapper();
+            m_wrapper = new J2534APIWrapper();
             return m_wrapper.LoadJ2534Library(m_device.FunctionLibrary);
         }
 
@@ -47,26 +48,36 @@ namespace J2534DotNet
             return m_wrapper.FreeLibrary();
         }
 
-        public J2534Err Open(ref int deviceId)
+        public J2534Err Open()
         {
             int nada = 0;
-            return (J2534Err)m_wrapper.Open(nada, ref deviceId);
+            return (J2534Err)m_wrapper.Open(nada, ref deviceID);
         }
 
-        public J2534Err Close(int deviceId)
+        public J2534Err Close()
         {
-            return (J2534Err)m_wrapper.Close(deviceId);
+            return (J2534Err)m_wrapper.Close(deviceID);
         }
 
-        public J2534Err Connect(int deviceId, ProtocolID protocolId, ConnectFlag flags, BaudRate baudRate, ref int channelId)
+        //public J2534Err Connect(Channel C)
+        //{
+        //    return Connect(C.Protocol, C.Flags, C.BaudRate, ref C.ChannelID);
+        //}
+
+        public J2534Err Connect(Protocols protocolId, ConnectFlag flags, BaudRate baudRate, ref int channelId)
         {
-            return (J2534Err)m_wrapper.Connect(deviceId, (int)protocolId, (int)flags, (int)baudRate, ref channelId);
+            return Connect(protocolId, flags, (int)baudRate, ref channelId);
         }
 
-        public J2534Err Connect(int deviceId, ProtocolID protocolId, ConnectFlag flags, int baudRate, ref int channelId)
+        public J2534Err Connect(Protocols protocolId, ConnectFlag flags, int baudRate, ref int channelId)
         {
-            return (J2534Err)m_wrapper.Connect(deviceId, (int)protocolId, (int)flags, baudRate, ref channelId);
+            return (J2534Err)m_wrapper.Connect(deviceID, (int)protocolId, (int)flags, baudRate, ref channelId);
         }
+
+        //public J2534Err Disconnect(Channel C)
+        //{
+        //    return Disconnect(C.ChannelID);
+        //}
 
         public J2534Err Disconnect(int channelId)
         {
@@ -152,7 +163,7 @@ namespace J2534DotNet
         public J2534Err StartMsgFilter
         (
             int channelid,
-            FilterType filterType,
+            FilterEnum filterType,
             ref PassThruMsg maskMsg,
             ref PassThruMsg patternMsg,
             ref PassThruMsg flowControlMsg,
@@ -176,7 +187,7 @@ namespace J2534DotNet
         public J2534Err StartMsgFilter
         (
             int channelid,
-            FilterType filterType,
+            FilterEnum filterType,
             ref PassThruMsg maskMsg,
             ref PassThruMsg patternMsg,
             ref int filterId
@@ -201,7 +212,7 @@ namespace J2534DotNet
             return (J2534Err)m_wrapper.StopMsgFilter(channelId, filterId);
         }
 
-        public J2534Err SetProgrammingVoltage(int deviceId, PinNumber pinNumber, int voltage)
+        public J2534Err SetProgrammingVoltage(int deviceId, Pin pinNumber, int voltage)
         {
             return (J2534Err)m_wrapper.SetProgrammingVoltage(deviceId, (int)pinNumber, voltage);
         }
@@ -397,7 +408,7 @@ namespace J2534DotNet
         {
             PassThruMsg msg = new PassThruMsg();
 
-            msg.ProtocolID = (ProtocolID)uMsg.ProtocolID;
+            msg.ProtocolID = (Protocols)uMsg.ProtocolID;
             msg.RxStatus = (RxStatus)uMsg.RxStatus;
             msg.Timestamp = uMsg.Timestamp;
             msg.TxFlags = (TxFlag)uMsg.TxFlags;

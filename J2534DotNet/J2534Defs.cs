@@ -32,18 +32,35 @@ namespace J2534DotNet
     public class PassThruMsg
     {
         public PassThruMsg() { }
-        public PassThruMsg(ProtocolID myProtocolId, TxFlag myTxFlag, byte[] myByteArray)
+        public PassThruMsg(Protocols myProtocolId, TxFlag myTxFlag, byte[] myByteArray)
         {
             ProtocolID = myProtocolId;
             TxFlags = myTxFlag;
             Data = myByteArray;
         }
-		public ProtocolID ProtocolID {get; set;}
+		public Protocols ProtocolID {get; set;}
         public RxStatus RxStatus { get; set; }
         public TxFlag TxFlags { get; set; }
         public int Timestamp { get; set; }
         public int ExtraDataIndex { get; set; }
         public byte[] Data { get; set; }
+    }
+
+    public class PeriodicMsg_Type
+    {
+        public PassThruMsg Msg { get; set; }
+        public int Interval { get; set; }
+        public int pMsgID { get; set; }
+    }
+
+    public class MsgFilterType
+    {
+        public FilterEnum FilterType;
+        public PassThruMsg MaskMsg;
+        public PassThruMsg PatternMsg;
+        public PassThruMsg FlowControlMsg;
+        public int FilterId;
+
     }
 
     [Flags]
@@ -81,7 +98,7 @@ namespace J2534DotNet
         ISO15765_FRAME_PAD = 0x00000040
     }
 
-    public enum ProtocolID
+    public enum Protocols
     {
         J1850VPW = 0x01,
         J1850PWM = 0x02,
@@ -121,10 +138,13 @@ namespace J2534DotNet
         ISO15765 = 500000,
         ISO15765_125000 = 125000,
         ISO15765_250000 = 250000,
-        ISO15765_500000 = 500000
+        ISO15765_500000 = 500000,
+
+        SCI_7812 = 7812,
+        SCI_62500 = 62500
     }
 
-    public enum PinNumber
+    public enum Pin
     {
         AUX = 0,
         PIN_6 = 6,
@@ -136,7 +156,7 @@ namespace J2534DotNet
         PIN_15 = 15
     }
 
-    public enum FilterType
+    public enum FilterEnum
     {
         PASS_FILTER = 0x01,
         BLOCK_FILTER = 0x02,

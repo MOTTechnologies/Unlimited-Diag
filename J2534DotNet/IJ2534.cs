@@ -34,8 +34,8 @@ namespace J2534DotNet
         bool FreeLibrary();
         J2534Err Open(ref int deviceId);
         J2534Err Close(int deviceId);
-        J2534Err Connect(int deviceId, ProtocolID protocolId, ConnectFlag flags, BaudRate baudRate, ref int channelId);
-        J2534Err Connect(int deviceId, ProtocolID protocolId, ConnectFlag flags, int baudRate, ref int channelId);
+        J2534Err Connect(int deviceId, Protocols protocolId, ConnectFlag flags, BaudRate baudRate, ref int channelId);
+        J2534Err Connect(int deviceId, Protocols protocolId, ConnectFlag flags, int baudRate, ref int channelId);
         J2534Err Disconnect(int channelId);
         J2534Err ReadMsgs(int channelId, ref List<PassThruMsg> msgs, ref int numMsgs, int timeout);
         J2534Err ReadMsgs(int channelId, ref PassThruMsg msgs, int timeout);
@@ -46,14 +46,14 @@ namespace J2534DotNet
         J2534Err StartMsgFilter
         (
             int channelid,
-            FilterType filterType,
+            FilterEnum filterType,
             ref PassThruMsg maskMsg,
             ref PassThruMsg patternMsg,
             ref PassThruMsg flowControlMsg,
             ref int filterId
         );
         J2534Err StopMsgFilter(int channelId, int filterId);
-        J2534Err SetProgrammingVoltage(int deviceId, PinNumber pinNumber, int voltage);
+        J2534Err SetProgrammingVoltage(int deviceId, Pin pinNumber, int voltage);
         J2534Err ReadVersion(int deviceId, ref string firmwareVersion, ref string dllVersion, ref string apiVersion);
         J2534Err GetLastError(ref string errorDescription);
         J2534Err GetConfig(int channelId, ref List<SConfig> config);
