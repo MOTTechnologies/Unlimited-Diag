@@ -1,403 +1,366 @@
-﻿#region Copyright (c) 2010, Michael Kelly
-/* 
- * Copyright (c) 2010, Michael Kelly
- * michael.e.kelly@gmail.com
- * http://michael-kelly.com/
- * 
- * All rights reserved.
- * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
- * Neither the name of the organization nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
- */
-#endregion License
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 
 namespace J2534DotNet
 {
-    public class J2534// : IJ2534
+    class J2534Lib
     {
-        private J2534Device m_device;
-        private J2534APIWrapper m_wrapper;
-        public int deviceID;
+        public string FileName;
+        public bool IsLoaded;
+        public J2534APIWrapper API;
 
-        public bool LoadLibrary(J2534Device device)
+        public J2534Lib(string LibFile)
         {
-            m_device = device;
-            m_wrapper = new J2534APIWrapper();
-            return m_wrapper.LoadJ2534Library(m_device.FunctionLibrary);
+            API = new J2534DotNet.J2534APIWrapper();
+            Load();
         }
 
-        public bool FreeLibrary()
+        public bool Load()
         {
-            return m_wrapper.FreeLibrary();
+            IsLoaded = API.LoadJ2534Library(FileName);
+            return IsLoaded;
         }
 
-        public J2534Err Open()
+        public bool Free()
         {
-            int nada = 0;
-            return (J2534Err)m_wrapper.Open(nada, ref deviceID);
+            IsLoaded = API.FreeLibrary();   //Does this return a true or false????
+            return IsLoaded;
         }
 
-        public J2534Err Close()
+        public J2534PhysicalDevice ConstructDevice()
         {
-            return (J2534Err)m_wrapper.Close(deviceID);
+            J2534PhysicalDevice dev = new J2534DotNet.J2534PhysicalDevice(this);
+            if (dev.IsConnected)
+                return dev;
+            return null;
+        }
+    }
+
+    class J2534PhysicalDevice
+    {
+        public J2534Err Status;
+        public int DeviceID;
+        public bool IsConnected;
+        public J2534Lib Library;
+        public string FirmwareVersion;
+        public string LibraryVersion;
+        public string APIVersion;
+
+        public J2534PhysicalDevice(J2534Lib library)
+        {
+            Library = library;
+            ConnectToDevice();
         }
 
-        //public J2534Err Connect(Channel C)
-        //{
-        //    return Connect(C.Protocol, C.Flags, C.BaudRate, ref C.ChannelID);
-        //}
-
-        public J2534Err Connect(Protocols protocolId, ConnectFlag flags, BaudRate baudRate, ref int channelId)
-        {
-            return Connect(protocolId, flags, (int)baudRate, ref channelId);
-        }
-
-        public J2534Err Connect(Protocols protocolId, ConnectFlag flags, int baudRate, ref int channelId)
-        {
-            return (J2534Err)m_wrapper.Connect(deviceID, (int)protocolId, (int)flags, baudRate, ref channelId);
-        }
-
-        //public J2534Err Disconnect(Channel C)
-        //{
-        //    return Disconnect(C.ChannelID);
-        //}
-
-        public J2534Err Disconnect(int channelId)
-        {
-            return (J2534Err)m_wrapper.Disconnect(channelId);
-        }
-
-        public J2534Err ReadMsgs(int channelId, ref List<PassThruMsg> msgs, ref int numMsgs, int timeout)
-        {
-            IntPtr pMsg = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UnsafePassThruMsg)) * numMsgs);
-            IntPtr pNextMsg = IntPtr.Zero;
-            J2534Err returnValue = (J2534Err)m_wrapper.ReadMsgs(channelId, pMsg, ref numMsgs, timeout);
-            
-            if (returnValue == J2534Err.STATUS_NOERROR)
-            {
-                for (int i = 0; i < numMsgs; i++)
-                {
-                    pNextMsg = (IntPtr)(Marshal.SizeOf(typeof(UnsafePassThruMsg))*i + (int)pMsg);
-                    UnsafePassThruMsg uMsg = (UnsafePassThruMsg)Marshal.PtrToStructure(pMsg, typeof(UnsafePassThruMsg));
-                    msgs.Add(ConvertPassThruMsg(uMsg));
-                }
-            }
-
-            Marshal.FreeHGlobal(pMsg);
-
-            return returnValue;
-        }
-        public J2534Err ReadMsgs(int channelId, ref PassThruMsg msg, int timeout)
-        {
-            int numMsgs = 1;
-            IntPtr u_msg_ptr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UnsafePassThruMsg)));
-            J2534Err returnValue = (J2534Err)m_wrapper.ReadMsgs(channelId, u_msg_ptr, ref numMsgs, timeout);
-
-            if (returnValue == J2534Err.STATUS_NOERROR)
-            {
-                UnsafePassThruMsg uMsg = (UnsafePassThruMsg)Marshal.PtrToStructure(u_msg_ptr, typeof(UnsafePassThruMsg));
-                msg = ConvertPassThruMsg(uMsg);
-            }
-
-            Marshal.FreeHGlobal(u_msg_ptr);
-
-            return returnValue;
-        }
-        public J2534Err WriteMsgs(int channelId, ref List<PassThruMsg> msglist, ref int numMsgs, int timeout)
-        {
-            IntPtr pNextMsg = IntPtr.Zero;
-            IntPtr u_msg_list = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UnsafePassThruMsg)) * numMsgs);
-            UnsafePassThruMsg u_msg;
-
-            for (int i = 0; i < numMsgs; i++)
-            {
-                pNextMsg = (IntPtr)(Marshal.SizeOf(typeof(UnsafePassThruMsg)) * i + (int)u_msg_list);
-                u_msg = ConvertPassThruMsg(msglist[i]);
-                Marshal.StructureToPtr(u_msg, pNextMsg, false);
-            }
-
-            J2534Err return_value = (J2534Err)m_wrapper.WriteMsgs(channelId, u_msg_list, ref numMsgs, timeout);
-            Marshal.FreeHGlobal(u_msg_list);
-            return return_value;
-        }
-
-        public J2534Err WriteMsgs(int channelId, ref PassThruMsg msg, int timeout)
-        {
-            int numMsgs = 1;
-            UnsafePassThruMsg uMsg = ConvertPassThruMsg(msg);
-            IntPtr u_msg_ptr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UnsafePassThruMsg)));
-            Marshal.StructureToPtr(uMsg, u_msg_ptr, false);
-            J2534Err return_value = (J2534Err)m_wrapper.WriteMsgs(channelId, u_msg_ptr, ref numMsgs, timeout);
-            Marshal.FreeHGlobal(u_msg_ptr);
-            return return_value;
-        }
-
-        public J2534Err StartPeriodicMsg(int channelId, ref PassThruMsg msg, ref int msgId, int timeInterval)
-        {
-            UnsafePassThruMsg uMsg = ConvertPassThruMsg(msg);
-            return (J2534Err)m_wrapper.StartPeriodicMsg(channelId, ref uMsg, ref msgId, timeInterval);
-        }
-
-        public J2534Err StopPeriodicMsg(int channelId, int msgId)
-        {
-            return (J2534Err)m_wrapper.StopPeriodicMsg(channelId, msgId);
-        }
-
-        public J2534Err StartMsgFilter
-        (
-            int channelid,
-            FilterEnum filterType,
-            ref PassThruMsg maskMsg,
-            ref PassThruMsg patternMsg,
-            ref PassThruMsg flowControlMsg,
-            ref int filterId
-        )
-        {
-            UnsafePassThruMsg uMaskMsg = ConvertPassThruMsg(maskMsg);
-            UnsafePassThruMsg uPatternMsg = ConvertPassThruMsg(patternMsg);
-            UnsafePassThruMsg uFlowControlMsg = ConvertPassThruMsg(flowControlMsg);
-            return (J2534Err)m_wrapper.StartMsgFilter
-                    (
-                        channelid, 
-                        (int)filterType,
-                        ref uMaskMsg,
-                        ref uPatternMsg,
-                        ref uFlowControlMsg, 
-                        ref filterId
-                    );
-        }
-
-        public J2534Err StartMsgFilter
-        (
-            int channelid,
-            FilterEnum filterType,
-            ref PassThruMsg maskMsg,
-            ref PassThruMsg patternMsg,
-            ref int filterId
-        )
+        public bool ConnectToDevice()
         {
             int nada = 0;
-            UnsafePassThruMsg uMaskMsg = ConvertPassThruMsg(maskMsg);
-            UnsafePassThruMsg uPatternMsg = ConvertPassThruMsg(patternMsg);
-            return (J2534Err)m_wrapper.StartPassBlockMsgFilter
-                    (
-                        channelid,
-                        (int)filterType,
-                        ref uMaskMsg,
-                        ref uPatternMsg,
-                        nada,
-                        ref filterId
-                    );
+            Status = (J2534Err)Library.API.Open(nada, ref DeviceID);
+            if (Status == J2534Err.STATUS_NOERROR)
+            {
+                IsConnected = true;
+                GetVersion();
+                return false;
+            }
+            return true;
         }
 
-        public J2534Err StopMsgFilter(int channelId, int filterId)
+        public bool DisconnectDevice()
         {
-            return (J2534Err)m_wrapper.StopMsgFilter(channelId, filterId);
+            Status = (J2534Err)Library.API.Close(DeviceID);
+            if (Status == J2534Err.STATUS_NOERROR)
+            {
+                IsConnected = false;
+                return false;
+            }
+            return true;
         }
 
-        public J2534Err SetProgrammingVoltage(int deviceId, Pin pinNumber, int voltage)
+        public bool SetProgrammingVoltage(Pin PinNumber, int Voltage)
         {
-            return (J2534Err)m_wrapper.SetProgrammingVoltage(deviceId, (int)pinNumber, voltage);
+            Status = (J2534Err)Library.API.SetProgrammingVoltage(DeviceID, (int)PinNumber, Voltage);
+            if (Status == J2534Err.STATUS_NOERROR)
+                return false;
+            return true;
         }
 
-        public J2534Err ReadVersion(int deviceId, ref string firmwareVersion, ref string dllVersion, ref string apiVersion)
+        private bool GetVersion()
         {
             IntPtr pFirmwareVersion = Marshal.AllocHGlobal(120);
             IntPtr pDllVersion = Marshal.AllocHGlobal(120);
             IntPtr pApiVersion = Marshal.AllocHGlobal(120);
-            J2534Err returnValue = (J2534Err)m_wrapper.ReadVersion(deviceId, pFirmwareVersion, pDllVersion, pApiVersion);
-            if (returnValue == J2534Err.STATUS_NOERROR)
+            Status = (J2534Err)Library.API.ReadVersion(DeviceID, pFirmwareVersion, pDllVersion, pApiVersion);
+            if (Status == J2534Err.STATUS_NOERROR)
             {
-                firmwareVersion = Marshal.PtrToStringAnsi(pFirmwareVersion);
-                dllVersion = Marshal.PtrToStringAnsi(pDllVersion);
-                apiVersion = Marshal.PtrToStringAnsi(pApiVersion);
+                FirmwareVersion = Marshal.PtrToStringAnsi(pFirmwareVersion);
+                LibraryVersion = Marshal.PtrToStringAnsi(pDllVersion);
+                APIVersion = Marshal.PtrToStringAnsi(pApiVersion);
             }
 
             Marshal.FreeHGlobal(pFirmwareVersion);
             Marshal.FreeHGlobal(pDllVersion);
             Marshal.FreeHGlobal(pApiVersion);
 
-            return returnValue;
+            if (Status == J2534Err.STATUS_NOERROR)
+                return false;
+            return true;
         }
 
-        public J2534Err GetLastError(ref string errorDescription)
+        public string GetLastError()
         {
+            string return_string = null;
             IntPtr pErrorDescription = Marshal.AllocHGlobal(120);
-            J2534Err returnValue = (J2534Err)m_wrapper.GetLastError(pErrorDescription);
-            if (returnValue == J2534Err.STATUS_NOERROR)
-            {
-                errorDescription = Marshal.PtrToStringAnsi(pErrorDescription);
-            }
+            Status = (J2534Err)Library.API.GetLastError(pErrorDescription);
+            if (Status == J2534Err.STATUS_NOERROR)
+                return_string = Marshal.PtrToStringAnsi(pErrorDescription);
 
             Marshal.FreeHGlobal(pErrorDescription);
 
-            return returnValue;
+            return return_string;
         }
 
-        public J2534Err GetConfig(int channelId, ref List<SConfig> config)
+        public int MeasureBatteryVoltage()
         {
-            IntPtr input = IntPtr.Zero;
-            IntPtr output = IntPtr.Zero;
-
-            return (J2534Err)m_wrapper.Ioctl(channelId, (int)Ioctl.GET_CONFIG, input, output);
-        }
-
-        public J2534Err SetConfig(int channelId, ref List<SConfig> config)
-        {
-            IntPtr input = IntPtr.Zero;
-            IntPtr output = IntPtr.Zero;
-
-            return (J2534Err)m_wrapper.Ioctl(channelId, (int)Ioctl.SET_CONFIG, input, output);
-        }
-
-        public J2534Err ReadBatteryVoltage(int deviceId, ref int voltage)
-        {
+            int voltage = 0;
             IntPtr input = IntPtr.Zero;
             IntPtr output = Marshal.AllocHGlobal(8);
 
-            J2534Err returnValue = (J2534Err)m_wrapper.Ioctl(deviceId, (int)Ioctl.READ_VBATT, input, output);
-            if (returnValue == J2534Err.STATUS_NOERROR)
+            Status = (J2534Err)Library.API.Ioctl(DeviceID, (int)Ioctl.READ_VBATT, input, output);
+            if (Status == J2534Err.STATUS_NOERROR)
             {
                 voltage = Marshal.ReadInt32(output);
             }
 
             Marshal.FreeHGlobal(output);
 
-            return returnValue;
+            return voltage;
         }
 
-        public J2534Err FiveBaudInit(int channelId, byte targetAddress, ref byte keyword1, ref byte keyword2)
+        public int MeasureProgrammingVoltage()
         {
-            J2534Err returnValue;
+            int voltage = 0;
             IntPtr input = IntPtr.Zero;
-            IntPtr output = IntPtr.Zero;
+            IntPtr output = Marshal.AllocHGlobal(8);
 
-            SByteArray inputArray = new SByteArray();
-            SByteArray outputArray = new SByteArray();
-            inputArray.NumOfBytes = 1;
-            unsafe
+            Status = (J2534Err)Library.API.Ioctl(DeviceID, (int)Ioctl.READ_PROG_VOLTAGE, input, output);
+            if (Status == J2534Err.STATUS_NOERROR)
             {
-                //inputArray.BytePtr[0] = targetAddress;
-                outputArray.NumOfBytes = 2;
-
-                Marshal.StructureToPtr(inputArray, input, true);
-                Marshal.StructureToPtr(outputArray, output, true);
-
-                returnValue = (J2534Err)m_wrapper.Ioctl(channelId, (int)Ioctl.FIVE_BAUD_INIT, input, output);
-
-                Marshal.PtrToStructure(output, outputArray);
-            }
-            return returnValue;
-        }
-
-        public J2534Err FastInit(int channelId, PassThruMsg txMsg, ref PassThruMsg rxMsg)
-        {
-            IntPtr input = IntPtr.Zero;
-            IntPtr output = IntPtr.Zero;
-            UnsafePassThruMsg uTxMsg = ConvertPassThruMsg(txMsg);
-            UnsafePassThruMsg uRxMsg = new UnsafePassThruMsg();
-
-            Marshal.StructureToPtr(uTxMsg, input, true);
-            Marshal.StructureToPtr(uRxMsg, output, true);
-
-            J2534Err returnValue = (J2534Err)m_wrapper.Ioctl(channelId, (int)Ioctl.FAST_INIT, input, output);
-            if (returnValue == J2534Err.STATUS_NOERROR)
-            {
-                Marshal.PtrToStructure(output, uRxMsg);
+                voltage = Marshal.ReadInt32(output);
             }
 
-            rxMsg = ConvertPassThruMsg(uRxMsg);
-            return returnValue;
+            Marshal.FreeHGlobal(output);
+
+            return voltage;
         }
 
-        public J2534Err ClearTxBuffer(int channelId)
+        public Channel ConstructChannel()
         {
-            IntPtr input = IntPtr.Zero;
-            IntPtr output = IntPtr.Zero;
-
-            return (J2534Err)m_wrapper.Ioctl(channelId, (int)Ioctl.CLEAR_TX_BUFFER, input, output);
+            return new Channel(this);
         }
 
-        public J2534Err ClearRxBuffer(int channelId)
+
+    }
+
+    class Channel
+    {
+        public J2534Err Status;
+        public List<PassThruMsg> MsgList;
+        public List<SConfig> SConfigList;
+        public List<PeriodicMsg_Type> PeriodicMsgList;
+        public List<MsgFilterType> FilterList;
+        public bool IsConnected;
+        public J2534PhysicalDevice Device;
+        public int ChannelID;
+        public Protocols ProtocolID;
+        public int Baud;
+        public ConnectFlag ConnectFlags;
+        public int TxTimeout;
+        public int RxTimeout;
+        public byte FiveBaudTargetAddress;
+        public byte FiveBaudKeyword1;
+        public byte FiveBaudKeyword2;
+
+        public Channel(J2534PhysicalDevice device)
         {
-            IntPtr input = IntPtr.Zero;
-            IntPtr output = IntPtr.Zero;
-
-            return (J2534Err)m_wrapper.Ioctl(channelId, (int)Ioctl.CLEAR_RX_BUFFER, input, output);
+            Device = device;
+            Status = Device.Status;
+            MsgList = new List<J2534DotNet.PassThruMsg>();
+            SConfigList = new List<J2534DotNet.SConfig>();
+            PeriodicMsgList = new List<PeriodicMsg_Type>();
+            FilterList = new List<J2534DotNet.MsgFilterType>();
+            ConnectFlags = ConnectFlag.NONE;
+            TxTimeout = 50;
+            RxTimeout = 250;
+            IsConnected = false;
         }
 
-        public J2534Err ClearPeriodicMsgs(int channelId)
+        public bool Connect()
         {
-            IntPtr input = IntPtr.Zero;
-            IntPtr output = IntPtr.Zero;
-
-            return (J2534Err)m_wrapper.Ioctl(channelId, (int)Ioctl.CLEAR_PERIODIC_MSGS, input, output);
+            Status = (J2534Err)Device.Library.API.Connect(Device.DeviceID, (int)ProtocolID, (int)ConnectFlags, Baud, ref ChannelID);
+            if (Status == J2534Err.STATUS_NOERROR)
+            {
+                IsConnected = true;
+                return false;
+            }
+            return true;
         }
 
-        public J2534Err ClearMsgFilters(int channelId)
+        public bool Disconnect()
         {
-            IntPtr input = IntPtr.Zero;
-            IntPtr output = IntPtr.Zero;
-
-            return (J2534Err)m_wrapper.Ioctl(channelId, (int)Ioctl.CLEAR_MSG_FILTERS, input, output);
+            Status = (J2534Err)Device.Library.API.Disconnect(ChannelID);
+            if (Status == J2534Err.STATUS_NOERROR)
+            {
+                IsConnected = false;
+                return false;
+            }
+            return true;
         }
 
-        public J2534Err ClearFunctMsgLookupTable(int channelId)
+        public bool ReadMsg()
         {
-            IntPtr input = IntPtr.Zero;
-            IntPtr output = IntPtr.Zero;
-
-            return (J2534Err)m_wrapper.Ioctl(channelId, (int)Ioctl.CLEAR_FUNCT_MSG_LOOKUP_TABLE, input, output);
+            return ReadMsgs(1, RxTimeout);
         }
 
-        public J2534Err AddToFunctMsgLookupTable(int channelId)
+        public bool ReadMsg(int NumMsgs)
         {
-            IntPtr input = IntPtr.Zero;
-            IntPtr output = IntPtr.Zero;
-            // TODO: fix this
-            return (J2534Err)m_wrapper.Ioctl(channelId, (int)Ioctl.ADD_TO_FUNCT_MSG_LOOKUP_TABLE, input, output);
+            return ReadMsgs(NumMsgs, RxTimeout);
         }
 
-        public J2534Err DeleteFromFunctMsgLookupTable(int channelId)
+        public bool ReadMsgs(int NumMsgs, int Timeout)
         {
-            IntPtr input = IntPtr.Zero;
-            IntPtr output = IntPtr.Zero;
-            // TODO: fix this
-            return (J2534Err)m_wrapper.Ioctl(channelId, (int)Ioctl.DELETE_FROM_FUNCT_MSG_LOOKUP_TABLE, input, output);
+            int pNumMsgs = NumMsgs;
+            IntPtr pMsgHeap = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UnsafePassThruMsg)) * pNumMsgs);
+
+            Status = (J2534Err)Device.Library.API.ReadMsgs(ChannelID, pMsgHeap, ref pNumMsgs, RxTimeout);
+
+            if (Status == J2534Err.STATUS_NOERROR)
+            {
+                MsgList.Clear();
+                for (int i = 0; i < pNumMsgs; i++)
+                {
+                    IntPtr pNextMsg = (IntPtr)(Marshal.SizeOf(typeof(UnsafePassThruMsg)) * i + (int)pMsgHeap);
+                    UnsafePassThruMsg uMsg = (UnsafePassThruMsg)Marshal.PtrToStructure(pNextMsg, typeof(UnsafePassThruMsg));
+                    MsgList.Add(ConvertPassThruMsg(uMsg));
+                }
+            }
+
+            Marshal.FreeHGlobal(pMsgHeap);
+
+            if(Status == J2534Err.STATUS_NOERROR)
+                return false;
+            return true;
         }
 
-        private UnsafePassThruMsg ConvertPassThruMsg(PassThruMsg msg)
+        public bool WriteMsg(byte [] Msg)
+        {
+            MsgList[0].Data = Msg;
+            PassThruMsg tmp = MsgList[0];
+            MsgList.Clear();
+            MsgList.Add(tmp);
+
+            if (Status == J2534Err.STATUS_NOERROR)
+                return false;
+            return true;
+        }
+
+        public bool WriteMsgs()
+        {
+            int pNumMsgs = MsgList.Count;
+
+            IntPtr pMsg_heap = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UnsafePassThruMsg)) * pNumMsgs);
+
+            for (int i = 0; i < pNumMsgs; i++)
+            {
+                IntPtr pNextMsg = (IntPtr)(Marshal.SizeOf(typeof(UnsafePassThruMsg)) * i + (int)pMsg_heap);
+                UnsafePassThruMsg u_msg = ConvertPassThruMsg(MsgList[i]);
+                Marshal.StructureToPtr(u_msg, pNextMsg, false);
+            }
+
+            Status = (J2534Err)Device.Library.API.WriteMsgs(ChannelID, pMsg_heap, ref pNumMsgs, TxTimeout);
+
+            Marshal.FreeHGlobal(pMsg_heap);
+
+
+            if (Status == J2534Err.STATUS_NOERROR)
+                return false;
+            return true;
+        }
+
+        public bool StartPeriodicMsg(int Index)
+        {
+            int pMsgID = PeriodicMsgList[Index].pMsgID;
+            UnsafePassThruMsg uMsg = ConvertPassThruMsg(PeriodicMsgList[Index].Msg);
+            Status = (J2534Err)Device.Library.API.StartPeriodicMsg(ChannelID, ref uMsg, ref pMsgID, PeriodicMsgList[Index].Interval);
+            if(Status == J2534Err.STATUS_NOERROR)
+            {
+                PeriodicMsgList[Index].pMsgID = pMsgID;
+                return false;
+            }
+            return true;
+        }
+
+        public bool StopPeriodicMsg(int Index)
+        {
+            int pMsgID = PeriodicMsgList[Index].pMsgID;
+            Status = (J2534Err)Device.Library.API.StopPeriodicMsg(ChannelID, pMsgID);
+            if (Status == J2534Err.STATUS_NOERROR)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        public bool StartMsgFilter(int Index)
+        {
+            UnsafePassThruMsg uMaskMsg = ConvertPassThruMsg(FilterList[Index].MaskMsg);
+            UnsafePassThruMsg uPatternMsg = ConvertPassThruMsg(FilterList[Index].PatternMsg);
+            UnsafePassThruMsg uFlowControlMsg = ConvertPassThruMsg(FilterList[Index].FlowControlMsg);
+            int FID = FilterList[Index].FilterId;
+
+            Status = (J2534Err)Device.Library.API.StartMsgFilter(ChannelID,
+                                                  (int)FilterList[Index].FilterType,
+                                                  ref uMaskMsg,
+                                                  ref uPatternMsg,
+                                                  ref uFlowControlMsg,
+                                                  ref FID);
+
+            FilterList[Index].FilterId = FID;
+            if (Status == J2534Err.STATUS_NOERROR)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        public bool StopMsgFilter(int Index)
+        {
+            Status = (J2534Err)Device.Library.API.StopMsgFilter(ChannelID, FilterList[Index].FilterId);
+            if (Status == J2534Err.STATUS_NOERROR)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        private UnsafePassThruMsg ConvertPassThruMsg(PassThruMsg Msg)
         {
             UnsafePassThruMsg uMsg = new UnsafePassThruMsg();
 
-            uMsg.ProtocolID = (int)msg.ProtocolID;
-            uMsg.RxStatus = (int)msg.RxStatus;
-            uMsg.Timestamp = msg.Timestamp;
-            uMsg.TxFlags = (int)msg.TxFlags;
-            uMsg.ExtraDataIndex = msg.ExtraDataIndex;
-            uMsg.DataSize = msg.Data.Length;
+            uMsg.ProtocolID = (uint)Msg.ProtocolID;
+            uMsg.RxStatus = (uint)Msg.RxStatus;
+            uMsg.Timestamp = Msg.Timestamp;
+            uMsg.TxFlags = (uint)Msg.TxFlags;
+            uMsg.ExtraDataIndex = Msg.ExtraDataIndex;
+            uMsg.DataSize = (uint)Msg.Data.Length;
             unsafe
             {
-                for (int i = 0; i < msg.Data.Length; i++)
+                for (int i = 0; i < Msg.Data.Length; i++)
                 {
-                    uMsg.Data[i] = msg.Data[i];
+                    uMsg.Data[i] = Msg.Data[i];
                 }
             }
 
@@ -406,30 +369,233 @@ namespace J2534DotNet
 
         private static PassThruMsg ConvertPassThruMsg(UnsafePassThruMsg uMsg)
         {
-            PassThruMsg msg = new PassThruMsg();
+            PassThruMsg Msg = new PassThruMsg();
 
-            msg.ProtocolID = (Protocols)uMsg.ProtocolID;
-            msg.RxStatus = (RxStatus)uMsg.RxStatus;
-            msg.Timestamp = uMsg.Timestamp;
-            msg.TxFlags = (TxFlag)uMsg.TxFlags;
-            msg.ExtraDataIndex = uMsg.ExtraDataIndex;
-            msg.Data = new byte[uMsg.DataSize];
+            Msg.ProtocolID = (Protocols)uMsg.ProtocolID;
+            Msg.RxStatus = (RxStatus)uMsg.RxStatus;
+            Msg.Timestamp = uMsg.Timestamp;
+            Msg.TxFlags = (TxFlag)uMsg.TxFlags;
+            Msg.ExtraDataIndex = uMsg.ExtraDataIndex;
+            Msg.Data = new byte[uMsg.DataSize];
             unsafe
             {
                 for (int i = 0; i < uMsg.DataSize; i++)
                 {
-                    msg.Data[i] = uMsg.Data[i];
+                    Msg.Data[i] = uMsg.Data[i];
                 }
             }
 
-            return msg;
+            return Msg;
         }
 
-        [StructLayout(LayoutKind.Sequential)]
-        private unsafe struct SByteArray
+        public bool GetConfig()
         {
-            public int NumOfBytes;
-            public fixed byte BytePtr[2];
+            int num_of_params = SConfigList.Count();
+
+            IntPtr input = Marshal.AllocHGlobal(8 * (num_of_params + 1));
+
+            Marshal.WriteInt32(input, 0, num_of_params);
+            Marshal.WriteInt32(input, 4, (int)input + 8);
+            Marshal.StructureToPtr(SConfigList, (IntPtr)((int)input + 8), false);
+
+            Status = (J2534Err)Device.Library.API.Ioctl(ChannelID, (int)Ioctl.GET_CONFIG, input, IntPtr.Zero);
+
+            if (Status == J2534Err.STATUS_NOERROR)
+            {
+                num_of_params = Marshal.ReadInt32(input);
+                SConfigList = new List<SConfig>(num_of_params);
+                IntPtr ListDataPtr = Marshal.ReadIntPtr((IntPtr)((int)input + 4));
+                Marshal.PtrToStructure(ListDataPtr, SConfigList);
+            }
+
+            Marshal.FreeHGlobal(input);
+
+            if (Status == J2534Err.STATUS_NOERROR)
+            {
+                return false;
+            }
+            return true;
         }
+
+        public bool SetConfig()
+        {
+            int num_of_params = SConfigList.Count();
+
+            IntPtr input = Marshal.AllocHGlobal(8 * (num_of_params + 1));
+            IntPtr output = IntPtr.Zero;
+
+            Marshal.WriteInt32(input, 0, num_of_params);
+            Marshal.WriteInt32(input, 4, (int)input + 8);
+            Marshal.StructureToPtr(SConfigList, (IntPtr)((int)input + 8), false);
+
+            Status = (J2534Err)Device.Library.API.Ioctl(ChannelID, (int)Ioctl.SET_CONFIG, input, output);
+
+            Marshal.FreeHGlobal(input);
+
+            if (Status == J2534Err.STATUS_NOERROR)
+                return false;
+            return true;
+        }
+
+        public bool ClearTxBuffer()
+        {
+            IntPtr input = IntPtr.Zero;
+            IntPtr output = IntPtr.Zero;
+
+            Status = (J2534Err)Device.Library.API.Ioctl(ChannelID, (int)Ioctl.CLEAR_TX_BUFFER, input, output);
+            if (Status == J2534Err.STATUS_NOERROR)
+                return false;
+            return true;
+        }
+
+        public bool ClearRxBuffer()
+        {
+            IntPtr input = IntPtr.Zero;
+            IntPtr output = IntPtr.Zero;
+
+            Status = (J2534Err)Device.Library.API.Ioctl(ChannelID, (int)Ioctl.CLEAR_RX_BUFFER, input, output);
+            if (Status == J2534Err.STATUS_NOERROR)
+                return false;
+            return true;
+        }
+
+        public bool ClearPeriodicMsgs()
+        {
+            IntPtr input = IntPtr.Zero;
+            IntPtr output = IntPtr.Zero;
+
+            Status = (J2534Err)Device.Library.API.Ioctl(ChannelID, (int)Ioctl.CLEAR_PERIODIC_MSGS, input, output);
+            if (Status == J2534Err.STATUS_NOERROR)
+                return false;
+            return true;
+        }
+
+        public bool ClearMsgFilters()
+        {
+            IntPtr input = IntPtr.Zero;
+            IntPtr output = IntPtr.Zero;
+
+            Status = (J2534Err)Device.Library.API.Ioctl(ChannelID, (int)Ioctl.CLEAR_MSG_FILTERS, input, output);
+            if (Status == J2534Err.STATUS_NOERROR)
+                return false;
+            return true;
+        }
+
+        public bool ClearFunctMsgLookupTable()
+        {
+            IntPtr input = IntPtr.Zero;
+            IntPtr output = IntPtr.Zero;
+
+            Status = (J2534Err)Device.Library.API.Ioctl(ChannelID, (int)Ioctl.CLEAR_FUNCT_MSG_LOOKUP_TABLE, input, output);
+
+            if (Status == J2534Err.STATUS_NOERROR)
+                return false;
+            return true;
+        }
+
+        public bool AddToFunctMsgLookupTable(int Address)
+        {
+            IntPtr input = Marshal.AllocHGlobal(12);
+            IntPtr output = IntPtr.Zero;
+
+            Marshal.WriteInt32(input, 0, 4);
+            Marshal.WriteInt32(input, 4, (int)input + 8);
+            Marshal.WriteInt32(input, 8, Address);
+
+            Status = (J2534Err)Device.Library.API.Ioctl(ChannelID, (int)Ioctl.ADD_TO_FUNCT_MSG_LOOKUP_TABLE, input, output);
+
+            Marshal.FreeHGlobal(input);
+
+            if (Status == J2534Err.STATUS_NOERROR)
+                return false;
+            return true;
+        }
+
+        public bool DeleteFromFunctMsgLookupTable(int Address)
+        {
+            IntPtr input = Marshal.AllocHGlobal(12);
+            IntPtr output = IntPtr.Zero;
+
+            Marshal.WriteInt32(input, 0, 4);
+            Marshal.WriteInt32(input, 4, (int)input + 8);
+            Marshal.WriteInt32(input, 8, Address);
+
+            Status = (J2534Err)Device.Library.API.Ioctl(ChannelID, (int)Ioctl.DELETE_FROM_FUNCT_MSG_LOOKUP_TABLE, input, output);
+
+            Marshal.FreeHGlobal(input);
+
+            if (Status == J2534Err.STATUS_NOERROR)
+                return false;
+            return true;
+        }
+
+        public bool FiveBaudInit()
+        {
+            IntPtr input = Marshal.AllocHGlobal(9);
+            IntPtr output = Marshal.AllocHGlobal(10);
+
+            Marshal.WriteInt32(input, 0, 1);
+            Marshal.WriteInt32(input, 4, (int)input + 8);
+            Marshal.WriteInt32(input, 8, FiveBaudTargetAddress);
+
+            Marshal.WriteInt32(output, 0, 2);
+            Marshal.WriteInt32(output, 4, (int)output + 8);
+            Marshal.WriteInt32(output, 8, FiveBaudKeyword1);
+            Marshal.WriteInt32(output, 9, FiveBaudKeyword2);
+
+            Status = (J2534Err)Device.Library.API.Ioctl(ChannelID, (int)Ioctl.FIVE_BAUD_INIT, input, output);
+            if(Status == J2534Err.STATUS_NOERROR)
+            {
+                IntPtr data0 = Marshal.ReadIntPtr((IntPtr)((int)output + 4));
+                FiveBaudKeyword1 = Marshal.ReadByte(data0);
+                FiveBaudKeyword2 = Marshal.ReadByte((IntPtr)((int)data0 + 1));
+            }
+            Marshal.FreeHGlobal(input);
+            Marshal.FreeHGlobal(output);
+
+            if (Status == J2534Err.STATUS_NOERROR)
+                return false;
+            return true;
+        }
+
+        public bool FastInit()
+        {
+            IntPtr input = IntPtr.Zero;
+            IntPtr output = IntPtr.Zero;
+            UnsafePassThruMsg uTxMsg = ConvertPassThruMsg(MsgList[0]);
+            UnsafePassThruMsg uRxMsg = new UnsafePassThruMsg();
+
+            Marshal.StructureToPtr(uTxMsg, input, true);
+            Marshal.StructureToPtr(uRxMsg, output, true);
+
+            J2534Err returnValue = (J2534Err)Device.Library.API.Ioctl(ChannelID, (int)Ioctl.FAST_INIT, input, output);
+            if (returnValue == J2534Err.STATUS_NOERROR)
+            {
+                Marshal.PtrToStructure(output, uRxMsg);
+            }
+            Marshal.FreeHGlobal(input);
+            Marshal.FreeHGlobal(output);
+
+            MsgList[0] = ConvertPassThruMsg(uRxMsg);
+            if (Status == J2534Err.STATUS_NOERROR)
+                return false;
+            return true;
+        }
+
+        public bool SetProgrammingVoltage(Pin PinNumber, int Voltage)
+        {
+            return Device.SetProgrammingVoltage(PinNumber, Voltage);
+        }
+
+        public int MeasureProgrammingVoltage()
+        {
+            return Device.MeasureProgrammingVoltage();
+        }
+
+        public int MeasureBatteryVoltage()
+        {
+            return Device.MeasureBatteryVoltage();
+        }
+
     }
 }
