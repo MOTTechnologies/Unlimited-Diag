@@ -43,15 +43,12 @@
     <Compile Include="SAEDefs.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SAEDiag.cs" />
+    <Compile Include="SAEMessage.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\J2534DotNet\J2534DotNet.csproj">
       <Project>{d99e0de7-2f06-41e3-b33e-687e1b425a7f}</Project>
       <Name>J2534DotNet</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\OBD_Connection\OBD_Connection.csproj">
-      <Project>{54574b8c-0a42-4507-90a8-dd1ccb61e804}</Project>
-      <Name>OBD_Connection</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

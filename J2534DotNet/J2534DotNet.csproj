@@ -61,24 +61,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Device_Selection_Form.cs">
+    <Compile Include="Library_Selection_Form.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Device_Selection_Form.Designer.cs">
-      <DependentUpon>Device_Selection_Form.cs</DependentUpon>
+    <Compile Include="Library_Selection_Form.Designer.cs">
+      <DependentUpon>Library_Selection_Form.cs</DependentUpon>
     </Compile>
-    <Compile Include="J2534Discovery.cs" />
-    <Compile Include="IJ2534.cs" />
     <Compile Include="J2534.cs" />
+    <Compile Include="J2534Discovery.cs" />
     <Compile Include="J2534Defs.cs" />
-    <Compile Include="J2534Device.cs" />
+    <Compile Include="J2534RegisteredDevice.cs" />
     <Compile Include="J2534DllWrapper.cs" />
-    <Compile Include="New_J2534.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Device_Selection_Form.resx">
-      <DependentUpon>Device_Selection_Form.cs</DependentUpon>
+    <EmbeddedResource Include="Library_Selection_Form.resx">
+      <DependentUpon>Library_Selection_Form.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

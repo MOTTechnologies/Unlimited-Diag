@@ -26,7 +26,8 @@
 #endregion License
 namespace J2534DotNet
 {
-    public class J2534Device
+    //class to hold data reported from the Windows Registry about what J2534 Devices are installed
+    public class J2534RegisteredDevice
     {
         public string Vendor { get; set; }
         public string Name { get; set; }

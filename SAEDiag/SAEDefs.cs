@@ -1,98 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 
-namespace SAEDiag
+namespace SAE
 {
-	public class SAE_message
-	{
-		static public int size = 16;
-		private byte[] message_bytes = new byte[size];
-		
-        //implicit conversion to byte[]
-		public static implicit operator byte[](SAE_message msg)
-		{
-			return msg.message_bytes;
-		}
-        //implicit conversion from byte[]
-		public static implicit operator SAE_message(byte[] byte_array)
-		{
-            return new SAE_message(byte_array);
-		}
-
-        public byte this[int index]
-        {
-            get
-            {
-                if (0 <= index && index <= size)
-                    return message_bytes[index];
-                else
-                    return 0;   //TODO: Throw exception for out of bounds index
-            }
-            set
-            {
-                if (0 <= index && index <= size)
-                    message_bytes[index] = value;
-
-                    //TODO: Throw exception for out of bounds index
-            }
-        }
-		public SAE_message(int length)
-		{
-			size = length;
-			message_bytes = new byte[size];
-		}
-		
-		public SAE_message(byte[] msg)
-		{
-			size = msg.Length;
-			message_bytes = msg;
-		}
-		
-        public byte Modebyte
-        {
-            get
-            {
-                return message_bytes[0];
-            }
-            set
-            {
-                message_bytes[0] = value;
-            }
-        }
-        public SAE_modes Mode
-        {
-            get
-            {
-                return (System.Enum.IsDefined(typeof(SAE_modes), message_bytes[0])) ? (SAE_modes)message_bytes[0] : SAE_modes.UNKNOWN_MODE;
-            }
-            set
-            {
-                message_bytes[0] = (byte)value;
-            }
-        }
-        public byte PID
-        {
-            get
-            {
-                return message_bytes[1];
-            }
-            set
-            {
-                message_bytes[1] = value;
-            }
-        }
-		public SAE_responses Response
-		{
-			get
-			{
-                return (System.Enum.IsDefined(typeof(SAE_responses), message_bytes[size - 1])) ? (SAE_responses)message_bytes[size - 1] : SAE_responses.MANUFACTURER_SPECIFIC;
-			}
-			set
-			{
-				message_bytes[size - 1] = (byte)value;
-			}
-		}		
-	}
-    public enum SAE_modes
+    public enum SAEModes:byte
     {
         REQ_DIAG_DATA = 0x01,
         REQ_FREEZE_FRAME_DATA = 0x02,
@@ -154,7 +65,16 @@ namespace SAEDiag
         PENDING = 0x40, //Warning lamp pending for this code, not illuminate but malfunction was detected
         MIL_ON = 0x80   //Warning lamp illuminated for this code
     }
-	public enum SAE_responses
+    public enum SuccessResponse:byte
+    { 
+        AFFIRMITIVE_RESPONSE = 0x00,
+		SECURITY_ACCESS_ALLOWED = 0x34,
+		READY_FOR_DOWNLOAD = 0x44,
+		READY_FOR_UPLOAD = 0x54,
+		TRANSFER_COMPLETE = 0x73,
+		TRANSFER_RECEIVED = 0x78,
+    }
+    public enum SAE_responses:byte
 	{
 		AFFIRMITIVE_RESPONSE = 0x00,
 		GENERAL_REJECT = 0x10,
@@ -182,7 +102,7 @@ namespace SAEDiag
 		PASS_WITH_RESULTS = 0x61,
 		PASS_WITHOUT_RESULTS = 0x62,
 		FAIL_WITH_RESULTS = 0x63,
-		FAILT_WITHOUT_RESULTS = 0x64,
+		FAIL_WITHOUT_RESULTS = 0x64,
 		TRANSFER_SUSPENDED = 0x71,
 		TRANSFER_ABORTED = 0x72,
 		TRANSFER_COMPLETE = 0x73,
@@ -193,6 +113,5 @@ namespace SAEDiag
 		TRANSFER_RECEIVED = 0x78,
 		TRANSFER_BYTE_COUNT_MISMATCH = 0x79,
         MANUFACTURER_SPECIFIC
-    }
-	
+    }	
 }

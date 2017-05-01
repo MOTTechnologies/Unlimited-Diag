@@ -10,19 +10,19 @@ using J2534DotNet;
 
 namespace J2534DotNet
 {
-    public partial class Device_Selection : Form
+    public partial class LibrarySelectionForm : Form
     {
 
-        public  List<J2534Device> AvailableDevices;
-        public  List<J2534Device> SelectedDevices;
+        public  List<J2534RegisteredDevice> AvailableDevices;
+        public  List<J2534RegisteredDevice> SelectedDevices;
 
-        public Device_Selection()
+        public LibrarySelectionForm()
         {
             InitializeComponent();
-            AvailableDevices = J2534Discovery.ListDevices();
-            SelectedDevices = new List<J2534Device>();
+            AvailableDevices  = J2534Discovery.GetRegisteredDevices();
+            SelectedDevices = new List<J2534RegisteredDevice>();
 
-            foreach (J2534Device device in AvailableDevices)
+            foreach (J2534RegisteredDevice device in AvailableDevices)
                 DeviceSelectList.Items.Add(device.Vendor + " - " + device.Name);
 
             DeviceSelectList.SelectedIndex = 0;
@@ -36,7 +36,7 @@ namespace J2534DotNet
             {
                 if(AvailableDevices.Find(d => d.FunctionLibrary == LibBrowseDialog.FileName) == null)
                 {
-                    J2534Device new_device = new J2534Device();
+                    J2534RegisteredDevice new_device = new J2534RegisteredDevice();
                     new_device.ConfigApplication = "Unknown";
                     new_device.Vendor = "USER DEFINED";
                     new_device.Name = LibBrowseDialog.SafeFileName;
@@ -50,7 +50,7 @@ namespace J2534DotNet
 
         private void UpdateDeviceDetails(object sender, EventArgs e)
         {
-            J2534Device selected_device = AvailableDevices[DeviceSelectList.SelectedIndex];
+            J2534RegisteredDevice selected_device = AvailableDevices[DeviceSelectList.SelectedIndex];
 
             DeviceDetails.Text =  " Config Application\t" + selected_device.ConfigApplication + "\r\n";
             DeviceDetails.Text += " Function Library\t" + selected_device.FunctionLibrary + "\r\n\r\n";

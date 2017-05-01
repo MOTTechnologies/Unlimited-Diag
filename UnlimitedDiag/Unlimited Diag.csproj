@@ -66,7 +66,6 @@
     <Compile Include="Root_Form.Designer.cs">
       <DependentUpon>Root_Form.cs</DependentUpon>
     </Compile>
-    <Compile Include="ObdComm.cs" />
     <Compile Include="Program.cs" />
     <EmbeddedResource Include="Root_Form.resx">
       <DependentUpon>Root_Form.cs</DependentUpon>
@@ -77,9 +76,9 @@
       <Project>{D99E0DE7-2F06-41E3-B33E-687E1B425A7F}</Project>
       <Name>J2534DotNet</Name>
     </ProjectReference>
-    <ProjectReference Include="..\OBD_Connection\OBD_Connection.csproj">
-      <Project>{54574b8c-0a42-4507-90a8-dd1ccb61e804}</Project>
-      <Name>OBD_Connection</Name>
+    <ProjectReference Include="..\SAEDiag\SAEDiag.csproj">
+      <Project>{dba67a7e-b4c3-444e-a67a-8d9ea1037343}</Project>
+      <Name>SAEDiag</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

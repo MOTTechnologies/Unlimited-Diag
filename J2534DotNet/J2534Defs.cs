@@ -26,24 +26,25 @@
 #endregion License
 using System;
 using System.Runtime.InteropServices;
-
+using System.Collections.Generic;
+using System.Linq;
 namespace J2534DotNet
 {
     public class PassThruMsg
     {
         public PassThruMsg() { }
-        public PassThruMsg(Protocols myProtocolId, TxFlag myTxFlag, byte[] myByteArray)
+        public PassThruMsg(Protocols ProtocolID, TxFlag TxFlags, List<byte> Data)
         {
-            ProtocolID = myProtocolId;
-            TxFlags = myTxFlag;
-            Data = myByteArray;
+            this.ProtocolID = ProtocolID;
+            this.TxFlags = TxFlags;
+            this.Data = Data;
         }
 		public Protocols ProtocolID {get; set;}
         public RxStatus RxStatus { get; set; }
         public TxFlag TxFlags { get; set; }
         public uint Timestamp { get; set; }
         public uint ExtraDataIndex { get; set; }
-        public byte[] Data { get; set; }
+        public List<byte> Data { get; set; }
     }
 
     public class PeriodicMsg_Type
@@ -56,11 +57,59 @@ namespace J2534DotNet
     public class MsgFilterType
     {
         public FilterEnum FilterType;
-        public PassThruMsg MaskMsg;
-        public PassThruMsg PatternMsg;
-        public PassThruMsg FlowControlMsg;
+        public List<byte> Mask;
+        public List<byte> Pattern;
+        public List<byte> FlowControl;
+        public TxFlag FlowControlTxFlags;
         public int FilterId;
 
+        public MsgFilterType()
+        {
+            Mask = new List<byte>();
+            Pattern = new List<byte>();
+            FlowControl = new List<byte>();
+            FlowControlTxFlags = TxFlag.ISO15765_FRAME_PAD;
+        }
+
+        public void Clear()
+        {
+            Mask.Clear();
+            Pattern.Clear();
+            FlowControl.Clear();
+        }
+
+        public void PassAll()
+        {
+            Clear();
+            Mask.Add(0x00);
+            Pattern.Add(0x00);
+        }
+        public void ExactMatch(List<byte> Match)
+        {
+            Clear();
+            Mask = Enumerable.Repeat((byte)0xFF, Match.Count).ToList();
+            Pattern = Match;
+        }
+        public void PlainISO15765(byte AddressByte1, byte AddressByte0)
+        { 
+            Clear();
+            Mask.Add(0xFF);
+            Mask.Add(0xFF);
+            Mask.Add(0xFF);
+            Mask.Add(0xFF);
+
+            Pattern.Add(0x00);
+            Pattern.Add(0x00);
+            Pattern.Add(AddressByte1);
+            Pattern.Add((byte)(AddressByte0 + 0x08));
+
+            FlowControl.Add(0x00);
+            FlowControl.Add(0x00);
+            FlowControl.Add(AddressByte1);
+            FlowControl.Add(AddressByte0);
+
+            FlowControlTxFlags = TxFlag.ISO15765_FRAME_PAD;
+        }
     }
 
     [Flags]
@@ -80,6 +129,7 @@ namespace J2534DotNet
     public enum ConnectFlag
     {
         NONE = 0x0000,
+        SNIFF_MODE = 0x10000000,    //Drewtech only
         ISO9141_K_LINE_ONLY = 0x1000,
         CAN_ID_BOTH = 0x0800,
         ISO9141_NO_CHECKSUM = 0x0200,
@@ -187,6 +237,7 @@ namespace J2534DotNet
         ERR_INVALID_CHANNEL_ID = 0x02,
         ERR_INVALID_PROTOCOL_ID = 0x03,
         ERR_NULL_PARAMETER = 0x04,
+        ERR_INVALID_IOCTL_VALUE = 0x05,
         ERR_INVALID_FLAGS = 0x06,
         ERR_FAILED = 0x07,
         ERR_DEVICE_NOT_CONNECTED = 0x08,

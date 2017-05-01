@@ -28,22 +28,22 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.cmdDetectDevices = new System.Windows.Forms.Button();
+            this.cmdDetectVehicle = new System.Windows.Forms.Button();
             this.cmdReadVoltage = new System.Windows.Forms.Button();
             this.txtVoltage = new System.Windows.Forms.TextBox();
             this.cmdReadVin = new System.Windows.Forms.Button();
             this.txtReadVin = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
-            // cmdDetectDevices
+            // cmdDetectVehicle
             // 
-            this.cmdDetectDevices.Location = new System.Drawing.Point(13, 13);
-            this.cmdDetectDevices.Name = "cmdDetectDevices";
-            this.cmdDetectDevices.Size = new System.Drawing.Size(154, 23);
-            this.cmdDetectDevices.TabIndex = 0;
-            this.cmdDetectDevices.Text = "Detect J2534 Devices";
-            this.cmdDetectDevices.UseVisualStyleBackColor = true;
-            this.cmdDetectDevices.Click += new System.EventHandler(this.CmdDetectDevicesClick);
+            this.cmdDetectVehicle.Location = new System.Drawing.Point(13, 13);
+            this.cmdDetectVehicle.Name = "cmdDetectVehicle";
+            this.cmdDetectVehicle.Size = new System.Drawing.Size(154, 23);
+            this.cmdDetectVehicle.TabIndex = 0;
+            this.cmdDetectVehicle.Text = "Detect Vehicle";
+            this.cmdDetectVehicle.UseVisualStyleBackColor = true;
+            this.cmdDetectVehicle.Click += new System.EventHandler(this.CmdDetectVehicleClick);
             // 
             // cmdReadVoltage
             // 
@@ -79,7 +79,7 @@
             this.txtReadVin.Size = new System.Drawing.Size(428, 20);
             this.txtReadVin.TabIndex = 5;
             // 
-            // Form1
+            // Root_Form
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -88,8 +88,8 @@
             this.Controls.Add(this.cmdReadVin);
             this.Controls.Add(this.txtVoltage);
             this.Controls.Add(this.cmdReadVoltage);
-            this.Controls.Add(this.cmdDetectDevices);
-            this.Name = "Form1";
+            this.Controls.Add(this.cmdDetectVehicle);
+            this.Name = "Root_Form";
             this.Text = "J2534DotNet Sample";
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -98,7 +98,7 @@
 
         #endregion
 
-        private System.Windows.Forms.Button cmdDetectDevices;
+        private System.Windows.Forms.Button cmdDetectVehicle;
         private System.Windows.Forms.Button cmdReadVoltage;
         private System.Windows.Forms.TextBox txtVoltage;
         private System.Windows.Forms.Button cmdReadVin;

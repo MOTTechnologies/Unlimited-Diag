@@ -7,31 +7,32 @@ using System.Runtime.InteropServices;
 
 namespace J2534DotNet
 {
-    class J2534Lib
+    internal class J2534Lib
     {
-        public string FileName;
-        public bool IsLoaded;
-        public J2534APIWrapper API;
+        internal string FileName;
+        internal bool IsLoaded;
+        internal J2534APIWrapper API;
 
-        public J2534Lib(string LibFile)
+        internal J2534Lib(string LibFile)
         {
+            FileName = LibFile;
             API = new J2534DotNet.J2534APIWrapper();
             Load();
         }
 
-        public bool Load()
+        internal bool Load()
         {
             IsLoaded = API.LoadJ2534Library(FileName);
             return IsLoaded;
         }
 
-        public bool Free()
+        internal bool Free()
         {
             IsLoaded = API.FreeLibrary();   //Does this return a true or false????
             return IsLoaded;
         }
 
-        public J2534PhysicalDevice ConstructDevice()
+        internal J2534PhysicalDevice ConstructDevice()
         {
             J2534PhysicalDevice dev = new J2534DotNet.J2534PhysicalDevice(this);
             if (dev.IsConnected)
@@ -40,17 +41,17 @@ namespace J2534DotNet
         }
     }
 
-    class J2534PhysicalDevice
+    public class J2534PhysicalDevice
     {
         public J2534Err Status;
-        public int DeviceID;
+        internal int DeviceID;
         public bool IsConnected;
-        public J2534Lib Library;
+        internal J2534Lib Library;
         public string FirmwareVersion;
         public string LibraryVersion;
         public string APIVersion;
 
-        public J2534PhysicalDevice(J2534Lib library)
+        internal J2534PhysicalDevice(J2534Lib library)
         {
             Library = library;
             ConnectToDevice();
@@ -59,7 +60,7 @@ namespace J2534DotNet
         public bool ConnectToDevice()
         {
             int nada = 0;
-            Status = (J2534Err)Library.API.Open(nada, ref DeviceID);
+            Status = (J2534Err)Library.API.Open(ref nada, ref DeviceID);
             if (Status == J2534Err.STATUS_NOERROR)
             {
                 IsConnected = true;
@@ -165,7 +166,7 @@ namespace J2534DotNet
 
     }
 
-    class Channel
+    public class Channel
     {
         public J2534Err Status;
         public List<PassThruMsg> MsgList;
@@ -173,17 +174,18 @@ namespace J2534DotNet
         public List<PeriodicMsg_Type> PeriodicMsgList;
         public List<MsgFilterType> FilterList;
         public bool IsConnected;
-        public J2534PhysicalDevice Device;
+        private J2534PhysicalDevice Device;
         public int ChannelID;
         public Protocols ProtocolID;
         public int Baud;
         public ConnectFlag ConnectFlags;
         public int TxTimeout;
-        public int RxTimeout;
+        public int DefaultRxTimeout;
+        public TxFlag DefaultTxFlag;
         public byte FiveBaudTargetAddress;
         public byte FiveBaudKeyword1;
         public byte FiveBaudKeyword2;
-
+        public byte[] Header;   //Header to append when using Read/WriteMessagesNoHeader
         public Channel(J2534PhysicalDevice device)
         {
             Device = device;
@@ -192,9 +194,11 @@ namespace J2534DotNet
             SConfigList = new List<J2534DotNet.SConfig>();
             PeriodicMsgList = new List<PeriodicMsg_Type>();
             FilterList = new List<J2534DotNet.MsgFilterType>();
+            FilterList.Add(new MsgFilterType());
             ConnectFlags = ConnectFlag.NONE;
             TxTimeout = 50;
-            RxTimeout = 250;
+            DefaultRxTimeout = 250;
+            DefaultTxFlag = TxFlag.NONE;
             IsConnected = false;
         }
 
@@ -220,22 +224,27 @@ namespace J2534DotNet
             return true;
         }
 
-        public bool ReadMsg()
+        public List<byte> GetMessage()
         {
-            return ReadMsgs(1, RxTimeout);
+            if(!GetMessages(1, DefaultRxTimeout))
+            {
+                if(MsgList.Any())
+                    return MsgList[0].Data;
+            }
+            return null;
         }
 
-        public bool ReadMsg(int NumMsgs)
+        public bool GetMessages(int NumMsgs)
         {
-            return ReadMsgs(NumMsgs, RxTimeout);
+            return GetMessages(NumMsgs, DefaultRxTimeout);
         }
 
-        public bool ReadMsgs(int NumMsgs, int Timeout)
+        public bool GetMessages(int NumMsgs, int Timeout)
         {
             int pNumMsgs = NumMsgs;
             IntPtr pMsgHeap = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UnsafePassThruMsg)) * pNumMsgs);
 
-            Status = (J2534Err)Device.Library.API.ReadMsgs(ChannelID, pMsgHeap, ref pNumMsgs, RxTimeout);
+            Status = (J2534Err)Device.Library.API.ReadMsgs(ChannelID, pMsgHeap, ref pNumMsgs, DefaultRxTimeout);
 
             if (Status == J2534Err.STATUS_NOERROR)
             {
@@ -255,19 +264,15 @@ namespace J2534DotNet
             return true;
         }
 
-        public bool WriteMsg(byte [] Msg)
+        public bool SendMessage(List<byte> Message)
         {
-            MsgList[0].Data = Msg;
-            PassThruMsg tmp = MsgList[0];
             MsgList.Clear();
-            MsgList.Add(tmp);
+            MsgList.Add(new J2534DotNet.PassThruMsg(ProtocolID, DefaultTxFlag, Message));
 
-            if (Status == J2534Err.STATUS_NOERROR)
-                return false;
-            return true;
+            return SendMessages();
         }
 
-        public bool WriteMsgs()
+        public bool SendMessages()
         {
             int pNumMsgs = MsgList.Count;
 
@@ -316,9 +321,9 @@ namespace J2534DotNet
 
         public bool StartMsgFilter(int Index)
         {
-            UnsafePassThruMsg uMaskMsg = ConvertPassThruMsg(FilterList[Index].MaskMsg);
-            UnsafePassThruMsg uPatternMsg = ConvertPassThruMsg(FilterList[Index].PatternMsg);
-            UnsafePassThruMsg uFlowControlMsg = ConvertPassThruMsg(FilterList[Index].FlowControlMsg);
+            UnsafePassThruMsg uMaskMsg = ConvertPassThruMsg(new PassThruMsg(ProtocolID, TxFlag.NONE, FilterList[Index].Mask));
+            UnsafePassThruMsg uPatternMsg = ConvertPassThruMsg(new PassThruMsg(ProtocolID, TxFlag.NONE, FilterList[Index].Pattern));
+            UnsafePassThruMsg uFlowControlMsg = ConvertPassThruMsg(new PassThruMsg(ProtocolID, FilterList[Index].FlowControlTxFlags, FilterList[Index].FlowControl));
             int FID = FilterList[Index].FilterId;
 
             Status = (J2534Err)Device.Library.API.StartMsgFilter(ChannelID,
@@ -355,10 +360,10 @@ namespace J2534DotNet
             uMsg.Timestamp = Msg.Timestamp;
             uMsg.TxFlags = (uint)Msg.TxFlags;
             uMsg.ExtraDataIndex = Msg.ExtraDataIndex;
-            uMsg.DataSize = (uint)Msg.Data.Length;
+            uMsg.DataSize = (uint)Msg.Data.Count;
             unsafe
             {
-                for (int i = 0; i < Msg.Data.Length; i++)
+                for (int i = 0; i < Msg.Data.Count; i++)
                 {
                     uMsg.Data[i] = Msg.Data[i];
                 }
@@ -367,7 +372,7 @@ namespace J2534DotNet
             return uMsg;
         }
 
-        private static PassThruMsg ConvertPassThruMsg(UnsafePassThruMsg uMsg)
+        private PassThruMsg ConvertPassThruMsg(UnsafePassThruMsg uMsg)
         {
             PassThruMsg Msg = new PassThruMsg();
 
@@ -376,12 +381,11 @@ namespace J2534DotNet
             Msg.Timestamp = uMsg.Timestamp;
             Msg.TxFlags = (TxFlag)uMsg.TxFlags;
             Msg.ExtraDataIndex = uMsg.ExtraDataIndex;
-            Msg.Data = new byte[uMsg.DataSize];
             unsafe
             {
                 for (int i = 0; i < uMsg.DataSize; i++)
                 {
-                    Msg.Data[i] = uMsg.Data[i];
+                    Msg.Data.Add(uMsg.Data[i]);
                 }
             }
 

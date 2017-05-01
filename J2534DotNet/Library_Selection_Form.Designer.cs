@@ -1,6 +1,6 @@
 ﻿namespace J2534DotNet
 {
-    partial class Device_Selection
+    partial class LibrarySelectionForm
     {
         /// <summary>
         /// Required designer variable.
