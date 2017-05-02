@@ -32,7 +32,10 @@ namespace J2534DotNet
 {
     public class PassThruMsg
     {
-        public PassThruMsg() { }
+        public PassThruMsg()
+        {
+            Data = new List<byte>();
+        }
         public PassThruMsg(Protocols ProtocolID, TxFlag TxFlags, List<byte> Data)
         {
             this.ProtocolID = ProtocolID;
@@ -51,24 +54,64 @@ namespace J2534DotNet
     {
         public PassThruMsg Msg { get; set; }
         public int Interval { get; set; }
-        public int pMsgID { get; set; }
+        internal int pMsgID { get;  set; }
     }
 
-    public class MsgFilterType
+
+        /// <summary>
+        /// enum used to create predefined filters in the MessageFilter constructor.
+        /// </summary>
+    public enum CommonFilter
+    {
+        NONE,
+        PASS,
+        PASSALL,
+        BLOCK,
+        STANDARDISO15765
+    }
+
+    public class MessageFilter
     {
         public FilterEnum FilterType;
         public List<byte> Mask;
         public List<byte> Pattern;
         public List<byte> FlowControl;
-        public TxFlag FlowControlTxFlags;
+        public TxFlag TxFlags;
         public int FilterId;
 
-        public MsgFilterType()
+        public MessageFilter()
         {
             Mask = new List<byte>();
             Pattern = new List<byte>();
             FlowControl = new List<byte>();
-            FlowControlTxFlags = TxFlag.ISO15765_FRAME_PAD;
+            TxFlags = TxFlag.NONE;
+        }
+
+        public MessageFilter(CommonFilter FilterType, List<byte> Match)
+        {
+            Mask = new List<byte>();
+            Pattern = new List<byte>();
+            FlowControl = new List<byte>();
+            TxFlags = TxFlag.NONE;
+
+            switch (FilterType)
+            {
+                case CommonFilter.PASSALL:
+                    PassAll();
+                    break;
+                case CommonFilter.PASS:
+                    Pass(Match);
+                    break;
+                case CommonFilter.BLOCK:
+                    Block(Match);
+                    break;
+                case CommonFilter.STANDARDISO15765:
+                    StandardISO15765(Match);
+                    break;
+                case CommonFilter.NONE:
+                    break;
+            }
+
         }
 
         public void Clear()
@@ -83,32 +126,45 @@ namespace J2534DotNet
             Clear();
             Mask.Add(0x00);
             Pattern.Add(0x00);
+            FilterType = FilterEnum.PASS_FILTER;
         }
-        public void ExactMatch(List<byte> Match)
+
+        public void Pass(List<byte> Match)
+        {
+            ExactMatch(Match);
+            FilterType = FilterEnum.PASS_FILTER;
+        }
+
+        public void Block(List<byte> Match)
+        {
+            ExactMatch(Match);
+            FilterType = FilterEnum.BLOCK_FILTER;
+        }
+
+        private void ExactMatch(List<byte> Match)
         {
             Clear();
             Mask = Enumerable.Repeat((byte)0xFF, Match.Count).ToList();
             Pattern = Match;
         }
-        public void PlainISO15765(byte AddressByte1, byte AddressByte0)
-        { 
+        public void StandardISO15765(List<byte> SourceAddress)
+        {
+            //Should throw exception??
+            if (SourceAddress.Count != 4)
+                return;
             Clear();
             Mask.Add(0xFF);
             Mask.Add(0xFF);
             Mask.Add(0xFF);
             Mask.Add(0xFF);
 
-            Pattern.Add(0x00);
-            Pattern.Add(0x00);
-            Pattern.Add(AddressByte1);
-            Pattern.Add((byte)(AddressByte0 + 0x08));
+            Pattern.AddRange(SourceAddress);
+            Pattern[3] += 0x08;
 
-            FlowControl.Add(0x00);
-            FlowControl.Add(0x00);
-            FlowControl.Add(AddressByte1);
-            FlowControl.Add(AddressByte0);
+            FlowControl.AddRange(SourceAddress);
 
-            FlowControlTxFlags = TxFlag.ISO15765_FRAME_PAD;
+            TxFlags = TxFlag.ISO15765_FRAME_PAD;
+            FilterType = FilterEnum.FLOW_CONTROL_FILTER;
         }
     }
 

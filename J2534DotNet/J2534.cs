@@ -7,8 +7,9 @@ using System.Runtime.InteropServices;
 
 namespace J2534DotNet
 {
-    internal class J2534Lib
+    internal class J2534Lib:IDisposable
     {
+        private bool disposed = false;
         internal string FileName;
         internal bool IsLoaded;
         internal J2534APIWrapper API;
@@ -38,6 +39,31 @@ namespace J2534DotNet
             if (dev.IsConnected)
                 return dev;
             return null;
+        }
+
+        // Public implementation of Dispose pattern callable by consumers.
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        // Protected implementation of Dispose pattern.
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+                return;
+
+            if (disposing)
+            {
+                // Free any other managed objects here.
+                //
+            }
+
+            // Free any unmanaged objects here.
+            //
+            API.FreeLibrary();
+            disposed = true;
         }
     }
 
@@ -158,9 +184,9 @@ namespace J2534DotNet
             return voltage;
         }
 
-        public Channel ConstructChannel()
+        public Channel ConstructChannel(Protocols ProtocolID, BaudRate Baud, ConnectFlag ConnectFlags)
         {
-            return new Channel(this);
+            return new Channel(this, ProtocolID, Baud, ConnectFlags);
         }
 
 
@@ -168,49 +194,44 @@ namespace J2534DotNet
 
     public class Channel
     {
-        public J2534Err Status;
-        public List<PassThruMsg> MsgList;
-        public List<SConfig> SConfigList;
-        public List<PeriodicMsg_Type> PeriodicMsgList;
-        public List<MsgFilterType> FilterList;
-        public bool IsConnected;
+        public J2534Err Status { get; private set; }
+        public List<PassThruMsg> MsgList { get; set; }
+        public List<SConfig> SConfigList { get; set; }
+        public List<PeriodicMsg_Type> PeriodicMsgList { get; set; }
+        public List<MessageFilter> FilterList { get; set; }
+        public bool IsConnected { get; private set; }
         private J2534PhysicalDevice Device;
-        public int ChannelID;
-        public Protocols ProtocolID;
-        public int Baud;
-        public ConnectFlag ConnectFlags;
-        public int TxTimeout;
-        public int DefaultRxTimeout;
-        public TxFlag DefaultTxFlag;
-        public byte FiveBaudTargetAddress;
-        public byte FiveBaudKeyword1;
-        public byte FiveBaudKeyword2;
-        public byte[] Header;   //Header to append when using Read/WriteMessagesNoHeader
-        public Channel(J2534PhysicalDevice device)
+        private int ChannelID;
+        public Protocols ProtocolID { get; private set; }
+        public int Baud { get; private set; }
+        public ConnectFlag ConnectFlags { get; internal set; }
+        public int DefaultTxTimeout { get; set; }
+        public int DefaultRxTimeout { get; set; }
+        public TxFlag DefaultTxFlag { get; set; }
+        public byte FiveBaudTargetAddress { get; set; }
+        public byte FiveBaudKeyword1 { get; set; }
+        public byte FiveBaudKeyword2 { get; set; }
+
+        internal Channel(J2534PhysicalDevice Device, Protocols ProtocolID, BaudRate Baud, ConnectFlag ConnectFlags)
         {
-            Device = device;
+            this.Device = Device;
+            this.ProtocolID = ProtocolID;
+            this.Baud = (int)Baud;
+            this.ConnectFlags = ConnectFlags;
+            Connect();
             Status = Device.Status;
             MsgList = new List<J2534DotNet.PassThruMsg>();
             SConfigList = new List<J2534DotNet.SConfig>();
             PeriodicMsgList = new List<PeriodicMsg_Type>();
-            FilterList = new List<J2534DotNet.MsgFilterType>();
-            FilterList.Add(new MsgFilterType());
-            ConnectFlags = ConnectFlag.NONE;
-            TxTimeout = 50;
+            FilterList = new List<J2534DotNet.MessageFilter>();
+            DefaultTxTimeout = 50;
             DefaultRxTimeout = 250;
             DefaultTxFlag = TxFlag.NONE;
-            IsConnected = false;
         }
 
-        public bool Connect()
+        private void Connect()
         {
             Status = (J2534Err)Device.Library.API.Connect(Device.DeviceID, (int)ProtocolID, (int)ConnectFlags, Baud, ref ChannelID);
-            if (Status == J2534Err.STATUS_NOERROR)
-            {
-                IsConnected = true;
-                return false;
-            }
-            return true;
         }
 
         public bool Disconnect()
@@ -234,11 +255,24 @@ namespace J2534DotNet
             return null;
         }
 
+        /// <summary>
+        /// Reads 'NumMsgs' messages from the input buffer and then the device.  Will block
+        /// until it gets 'NumMsgs' messages, or 'DefaultRxTimeout' expires.
+        /// </summary>
+        /// <param name="NumMsgs"></param>
+        /// <returns>Returns 'false' if successful</returns>
         public bool GetMessages(int NumMsgs)
         {
             return GetMessages(NumMsgs, DefaultRxTimeout);
         }
 
+        /// <summary>
+        /// Reads 'NumMsgs' messages from the input buffer and then the device.  Will block
+        /// until it gets 'NumMsgs' messages, or 'Timeout' expires.
+        /// </summary>
+        /// <param name="NumMsgs"></param>
+        /// <param name="Timeout"></param>
+        /// <returns>Returns 'false' if successful</returns>
         public bool GetMessages(int NumMsgs, int Timeout)
         {
             int pNumMsgs = NumMsgs;
@@ -264,6 +298,11 @@ namespace J2534DotNet
             return true;
         }
 
+        /// <summary>
+        /// Sends a single message 'Message'
+        /// </summary>
+        /// <param name="Message"></param>
+        /// <returns>Returns 'false' if successful</returns>
         public bool SendMessage(List<byte> Message)
         {
             MsgList.Clear();
@@ -272,6 +311,10 @@ namespace J2534DotNet
             return SendMessages();
         }
 
+        /// <summary>
+        /// Sends all messages contained in 'MsgList'
+        /// </summary>
+        /// <returns>Returns 'false' if successful</returns>
         public bool SendMessages()
         {
             int pNumMsgs = MsgList.Count;
@@ -285,7 +328,7 @@ namespace J2534DotNet
                 Marshal.StructureToPtr(u_msg, pNextMsg, false);
             }
 
-            Status = (J2534Err)Device.Library.API.WriteMsgs(ChannelID, pMsg_heap, ref pNumMsgs, TxTimeout);
+            Status = (J2534Err)Device.Library.API.WriteMsgs(ChannelID, pMsg_heap, ref pNumMsgs, DefaultTxTimeout);
 
             Marshal.FreeHGlobal(pMsg_heap);
 
@@ -294,7 +337,11 @@ namespace J2534DotNet
                 return false;
             return true;
         }
-
+        /// <summary>
+        /// Starts the periodic message in 'PeriodicMsgList' referenced by 'Index'
+        /// </summary>
+        /// <param name="Index"></param>
+        /// <returns>Returns 'false' if successful</returns>
         public bool StartPeriodicMsg(int Index)
         {
             int pMsgID = PeriodicMsgList[Index].pMsgID;
@@ -308,6 +355,11 @@ namespace J2534DotNet
             return true;
         }
 
+        /// <summary>
+        /// Stops the periodic message in 'PeriodicMsgList' referenced by 'Index'.
+        /// </summary>
+        /// <param name="Index"></param>
+        /// <returns>Returns 'false' if successful</returns>
         public bool StopPeriodicMsg(int Index)
         {
             int pMsgID = PeriodicMsgList[Index].pMsgID;
@@ -319,11 +371,27 @@ namespace J2534DotNet
             return true;
         }
 
+        /// <summary>
+        /// Starts a single message filter and if successful, adds it to the FilterList.
+        /// </summary>
+        /// <param name="Filter"></param>
+        /// <returns>Returns false if successful</returns>
+        public bool StartMsgFilter(MessageFilter Filter)
+        {
+            FilterList.Add(Filter);
+            if(StartMsgFilter(FilterList.Count - 1))
+            {
+                FilterList.RemoveAt(FilterList.Count - 1);
+                return true;
+            }
+            return false;
+        }
+
         public bool StartMsgFilter(int Index)
         {
-            UnsafePassThruMsg uMaskMsg = ConvertPassThruMsg(new PassThruMsg(ProtocolID, TxFlag.NONE, FilterList[Index].Mask));
-            UnsafePassThruMsg uPatternMsg = ConvertPassThruMsg(new PassThruMsg(ProtocolID, TxFlag.NONE, FilterList[Index].Pattern));
-            UnsafePassThruMsg uFlowControlMsg = ConvertPassThruMsg(new PassThruMsg(ProtocolID, FilterList[Index].FlowControlTxFlags, FilterList[Index].FlowControl));
+            UnsafePassThruMsg uMaskMsg = ConvertPassThruMsg(new PassThruMsg(ProtocolID, FilterList[Index].TxFlags, FilterList[Index].Mask));
+            UnsafePassThruMsg uPatternMsg = ConvertPassThruMsg(new PassThruMsg(ProtocolID, FilterList[Index].TxFlags, FilterList[Index].Pattern));
+            UnsafePassThruMsg uFlowControlMsg = ConvertPassThruMsg(new PassThruMsg(ProtocolID, FilterList[Index].TxFlags, FilterList[Index].FlowControl));
             int FID = FilterList[Index].FilterId;
 
             Status = (J2534Err)Device.Library.API.StartMsgFilter(ChannelID,
