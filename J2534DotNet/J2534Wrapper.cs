@@ -122,7 +122,8 @@ namespace J2534DotNet
             int FilterType,
             ref UnsafePassThruMsg uMaskMsg,
             ref UnsafePassThruMsg uPatternMsg,
-            ref UnsafePassThruMsg uFlowControlMsg,
+            //ref UnsafePassThruMsg uFlowControlMsg,
+            IntPtr puFlowControlMsg,
             ref int FilterID
         );
         internal PassThruStartMsgFilter StartMsgFilter;

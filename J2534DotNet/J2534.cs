@@ -128,9 +128,9 @@ namespace J2534DotNet
 
         private bool GetVersion()
         {
-            IntPtr pFirmwareVersion = Marshal.AllocHGlobal(120);
-            IntPtr pDllVersion = Marshal.AllocHGlobal(120);
-            IntPtr pApiVersion = Marshal.AllocHGlobal(120);
+            IntPtr pFirmwareVersion = Marshal.AllocHGlobal(80);
+            IntPtr pDllVersion = Marshal.AllocHGlobal(80);
+            IntPtr pApiVersion = Marshal.AllocHGlobal(80);
             Status = (J2534ERR)Library.API.ReadVersion(DeviceID, pFirmwareVersion, pDllVersion, pApiVersion);
             if (Status == J2534ERR.STATUS_NOERROR)
             {
@@ -409,14 +409,25 @@ namespace J2534DotNet
             UnsafePassThruMsg uMaskMsg = ConvertPassThruMsg(new J2534Message(ProtocolID, FilterList[Index].TxFlags, FilterList[Index].Mask));
             UnsafePassThruMsg uPatternMsg = ConvertPassThruMsg(new J2534Message(ProtocolID, FilterList[Index].TxFlags, FilterList[Index].Pattern));
             UnsafePassThruMsg uFlowControlMsg = ConvertPassThruMsg(new J2534Message(ProtocolID, FilterList[Index].TxFlags, FilterList[Index].FlowControl));
-            int FID = FilterList[Index].FilterId;
 
+            int FID = FilterList[Index].FilterId;
+            IntPtr puFlowControlMsg = IntPtr.Zero;
+
+            if (FilterList[Index].FilterType != J2534FILTER.FLOW_CONTROL_FILTER)
+                puFlowControlMsg = IntPtr.Zero;
+            else
+            {
+                puFlowControlMsg = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UnsafePassThruMsg)));
+                Marshal.StructureToPtr(uFlowControlMsg, puFlowControlMsg, false);
+            }
             Status = (J2534ERR)Device.Library.API.StartMsgFilter(ChannelID,
-                                                  (int)FilterList[Index].FilterType,
-                                                  ref uMaskMsg,
-                                                  ref uPatternMsg,
-                                                  ref uFlowControlMsg,
-                                                  ref FID);
+                                                (int)FilterList[Index].FilterType,
+                                                ref uMaskMsg,
+                                                ref uPatternMsg,
+                                                puFlowControlMsg,
+                                                ref FID);
+
+            Marshal.FreeHGlobal(puFlowControlMsg);
 
             FilterList[Index].FilterId = FID;
             if (Status == J2534ERR.STATUS_NOERROR)
