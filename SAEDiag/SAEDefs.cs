@@ -53,6 +53,7 @@ namespace SAE
         GENERAL_RESPONSE = 0x7F,
         UNKNOWN_MODE
     }
+
     [Flags]
     public enum SAE_DTC_status
     {
@@ -65,6 +66,7 @@ namespace SAE
         PENDING = 0x40, //Warning lamp pending for this code, not illuminate but malfunction was detected
         MIL_ON = 0x80   //Warning lamp illuminated for this code
     }
+
     public enum SuccessResponse:byte
     { 
         AFFIRMITIVE_RESPONSE = 0x00,
@@ -74,6 +76,7 @@ namespace SAE
 		TRANSFER_COMPLETE = 0x73,
 		TRANSFER_RECEIVED = 0x78,
     }
+
     public enum SAE_responses:byte
 	{
 		AFFIRMITIVE_RESPONSE = 0x00,

@@ -77,16 +77,27 @@ namespace J2534DotNet
         public string LibraryVersion;
         public string APIVersion;
 
-        internal J2534PhysicalDevice(J2534Lib library)
+        internal J2534PhysicalDevice(J2534Lib Library)
         {
-            Library = library;
-            ConnectToDevice();
-        }
+            this.Library = Library;
+            ConnectToDevice("");
+        }        
 
-        public bool ConnectToDevice()
+        //Devicenames that work are "CarDAQ-Plus1331" and "192.168.43.101"
+        internal J2534PhysicalDevice(J2534Lib Library, string DeviceName)
         {
-            int nada = 0;
-            Status = (J2534ERR)Library.API.Open(ref nada, ref DeviceID);
+            this.Library = Library;
+            ConnectToDevice(DeviceName);
+        }
+        public bool ConnectToDevice(string Device)
+        {
+            IntPtr DeviceNamePtr = IntPtr.Zero;
+            if (Device.Length > 0)
+                DeviceNamePtr = Marshal.StringToHGlobalAnsi(Device);
+            Status = (J2534ERR)Library.API.Open(DeviceNamePtr, ref DeviceID);
+
+            Marshal.FreeHGlobal(DeviceNamePtr);
+
             if (Status == J2534ERR.STATUS_NOERROR)
             {
                 IsConnected = true;
@@ -156,7 +167,7 @@ namespace J2534DotNet
             IntPtr input = IntPtr.Zero;
             IntPtr output = Marshal.AllocHGlobal(8);
 
-            Status = (J2534ERR)Library.API.Ioctl(DeviceID, (int)J2534IOCTL.READ_VBATT, input, output);
+            Status = (J2534ERR)Library.API.IOCtl(DeviceID, (int)J2534IOCTL.READ_VBATT, input, output);
             if (Status == J2534ERR.STATUS_NOERROR)
             {
                 voltage = Marshal.ReadInt32(output);
@@ -173,7 +184,7 @@ namespace J2534DotNet
             IntPtr input = IntPtr.Zero;
             IntPtr output = Marshal.AllocHGlobal(8);
 
-            Status = (J2534ERR)Library.API.Ioctl(DeviceID, (int)J2534IOCTL.READ_PROG_VOLTAGE, input, output);
+            Status = (J2534ERR)Library.API.IOCtl(DeviceID, (int)J2534IOCTL.READ_PROG_VOLTAGE, input, output);
             if (Status == J2534ERR.STATUS_NOERROR)
             {
                 voltage = Marshal.ReadInt32(output);
@@ -476,7 +487,7 @@ namespace J2534DotNet
             Marshal.WriteInt32(input, 8, (int)Parameter.Parameter);
             Marshal.WriteInt32(input, 12, Parameter.Value);
 
-            Status = (J2534ERR)Device.Library.API.Ioctl(ChannelID, (int)J2534IOCTL.GET_CONFIG, input, IntPtr.Zero);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.GET_CONFIG, input, IntPtr.Zero);
 
             if (Status == J2534ERR.STATUS_NOERROR)
             {
@@ -502,7 +513,7 @@ namespace J2534DotNet
             Marshal.WriteInt32(input, 8, (int)Parameter.Parameter);
             Marshal.WriteInt32(input, 12, Parameter.Value);
 
-            Status = (J2534ERR)Device.Library.API.Ioctl(ChannelID, (int)J2534IOCTL.SET_CONFIG, input, output);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.SET_CONFIG, input, output);
 
             Marshal.FreeHGlobal(input);
 
@@ -516,7 +527,7 @@ namespace J2534DotNet
             IntPtr input = IntPtr.Zero;
             IntPtr output = IntPtr.Zero;
 
-            Status = (J2534ERR)Device.Library.API.Ioctl(ChannelID, (int)J2534IOCTL.CLEAR_TX_BUFFER, input, output);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.CLEAR_TX_BUFFER, input, output);
             if (Status == J2534ERR.STATUS_NOERROR)
                 return false;
             return true;
@@ -527,7 +538,7 @@ namespace J2534DotNet
             IntPtr input = IntPtr.Zero;
             IntPtr output = IntPtr.Zero;
 
-            Status = (J2534ERR)Device.Library.API.Ioctl(ChannelID, (int)J2534IOCTL.CLEAR_RX_BUFFER, input, output);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.CLEAR_RX_BUFFER, input, output);
             if (Status == J2534ERR.STATUS_NOERROR)
                 return false;
             return true;
@@ -538,7 +549,7 @@ namespace J2534DotNet
             IntPtr input = IntPtr.Zero;
             IntPtr output = IntPtr.Zero;
 
-            Status = (J2534ERR)Device.Library.API.Ioctl(ChannelID, (int)J2534IOCTL.CLEAR_PERIODIC_MSGS, input, output);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.CLEAR_PERIODIC_MSGS, input, output);
             if (Status == J2534ERR.STATUS_NOERROR)
                 return false;
             return true;
@@ -549,7 +560,7 @@ namespace J2534DotNet
             IntPtr input = IntPtr.Zero;
             IntPtr output = IntPtr.Zero;
 
-            Status = (J2534ERR)Device.Library.API.Ioctl(ChannelID, (int)J2534IOCTL.CLEAR_MSG_FILTERS, input, output);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.CLEAR_MSG_FILTERS, input, output);
             if (Status == J2534ERR.STATUS_NOERROR)
                 return false;
             return true;
@@ -560,7 +571,7 @@ namespace J2534DotNet
             IntPtr input = IntPtr.Zero;
             IntPtr output = IntPtr.Zero;
 
-            Status = (J2534ERR)Device.Library.API.Ioctl(ChannelID, (int)J2534IOCTL.CLEAR_FUNCT_MSG_LOOKUP_TABLE, input, output);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.CLEAR_FUNCT_MSG_LOOKUP_TABLE, input, output);
 
             if (Status == J2534ERR.STATUS_NOERROR)
                 return false;
@@ -576,7 +587,7 @@ namespace J2534DotNet
             Marshal.WriteInt32(input, 4, (int)input + 8);
             Marshal.WriteInt32(input, 8, Address);
 
-            Status = (J2534ERR)Device.Library.API.Ioctl(ChannelID, (int)J2534IOCTL.ADD_TO_FUNCT_MSG_LOOKUP_TABLE, input, output);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.ADD_TO_FUNCT_MSG_LOOKUP_TABLE, input, output);
 
             Marshal.FreeHGlobal(input);
 
@@ -594,7 +605,7 @@ namespace J2534DotNet
             Marshal.WriteInt32(input, 4, (int)input + 8);
             Marshal.WriteInt32(input, 8, Address);
 
-            Status = (J2534ERR)Device.Library.API.Ioctl(ChannelID, (int)J2534IOCTL.DELETE_FROM_FUNCT_MSG_LOOKUP_TABLE, input, output);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.DELETE_FROM_FUNCT_MSG_LOOKUP_TABLE, input, output);
 
             Marshal.FreeHGlobal(input);
 
@@ -617,7 +628,7 @@ namespace J2534DotNet
             Marshal.WriteInt32(output, 8, FiveBaudKeyword1);
             Marshal.WriteInt32(output, 9, FiveBaudKeyword2);
 
-            Status = (J2534ERR)Device.Library.API.Ioctl(ChannelID, (int)J2534IOCTL.FIVE_BAUD_INIT, input, output);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.FIVE_BAUD_INIT, input, output);
             if(Status == J2534ERR.STATUS_NOERROR)
             {
                 IntPtr data0 = Marshal.ReadIntPtr((IntPtr)((int)output + 4));
@@ -642,7 +653,7 @@ namespace J2534DotNet
             Marshal.StructureToPtr(uTxMsg, input, true);
             Marshal.StructureToPtr(uRxMsg, output, true);
 
-            J2534ERR returnValue = (J2534ERR)Device.Library.API.Ioctl(ChannelID, (int)J2534IOCTL.FAST_INIT, input, output);
+            J2534ERR returnValue = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.FAST_INIT, input, output);
             if (returnValue == J2534ERR.STATUS_NOERROR)
             {
                 Marshal.PtrToStructure(output, uRxMsg);

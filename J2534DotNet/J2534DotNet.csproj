@@ -72,7 +72,7 @@
     <Compile Include="J2534Discovery.cs" />
     <Compile Include="J2534Defs.cs" />
     <Compile Include="J2534RegisteredDevice.cs" />
-    <Compile Include="J2534DllWrapper.cs" />
+    <Compile Include="J2534Wrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

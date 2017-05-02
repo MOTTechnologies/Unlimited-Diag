@@ -44,7 +44,6 @@ namespace J2534DotNet
         STANDARDISO15765
     }
 
-
     [Flags]
     public enum J2534RXFLAG
     {
