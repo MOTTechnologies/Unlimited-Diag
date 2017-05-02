@@ -48,12 +48,13 @@ namespace UnlimitedDiag
             if (!PhysicalDevices[0].IsConnected)
                 return;
 
-            Channel Ch = PhysicalDevices[0].ConstructChannel(Protocols.ISO15765, BaudRate.ISO15765, ConnectFlag.NONE);
+            Channel Ch = PhysicalDevices[0].ConstructChannel(J2534PROTOCOL.ISO15765, J2534BAUD.ISO15765, J2534CONNECTFLAG.NONE);
 
             if (Ch == null)
                 return;
 
-            Ch.StartMsgFilter(new MessageFilter(CommonFilter.STANDARDISO15765, new List<byte>{ 0x00, 0x00, 0x07, 0xE0 }));
+            Ch.StartMsgFilter(new MessageFilter(COMMONFILTER.STANDARDISO15765, new List<byte>{ 0x00, 0x00, 0x07, 0xE0 }));
+            Ch.SetConfig(new J2534DotNet.SConfig(J2534PARAMETER.LOOP_BACK, 0));
 
             SAEDiag Diagnostic = new SAEDiag();
 
@@ -65,13 +66,13 @@ namespace UnlimitedDiag
 
         private void CmdReadVoltageClick(object sender, EventArgs e)
         {
-            double voltage = 0;
+            float voltage = 0;
             if (!PhysicalDevices.Any())
                 return;
             if (!PhysicalDevices[0].IsConnected)
                 return;
-            voltage = PhysicalDevices[0].MeasureBatteryVoltage();
-            txtVoltage.Text = voltage + @" V";
+            voltage = (float)PhysicalDevices[0].MeasureBatteryVoltage() / 1000;
+            txtVoltage.Text = voltage.ToString("F3") + "v";
         }
 
         private void CmdReadVinClick(object sender, EventArgs e)

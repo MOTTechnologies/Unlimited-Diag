@@ -30,38 +30,12 @@ using System.Collections.Generic;
 using System.Linq;
 namespace J2534DotNet
 {
-    public class PassThruMsg
-    {
-        public PassThruMsg()
-        {
-            Data = new List<byte>();
-        }
-        public PassThruMsg(Protocols ProtocolID, TxFlag TxFlags, List<byte> Data)
-        {
-            this.ProtocolID = ProtocolID;
-            this.TxFlags = TxFlags;
-            this.Data = Data;
-        }
-		public Protocols ProtocolID {get; set;}
-        public RxStatus RxStatus { get; set; }
-        public TxFlag TxFlags { get; set; }
-        public uint Timestamp { get; set; }
-        public uint ExtraDataIndex { get; set; }
-        public List<byte> Data { get; set; }
-    }
-
-    public class PeriodicMsg_Type
-    {
-        public PassThruMsg Msg { get; set; }
-        public int Interval { get; set; }
-        internal int pMsgID { get;  set; }
-    }
 
 
         /// <summary>
         /// enum used to create predefined filters in the MessageFilter constructor.
         /// </summary>
-    public enum CommonFilter
+    public enum COMMONFILTER
     {
         NONE,
         PASS,
@@ -70,106 +44,9 @@ namespace J2534DotNet
         STANDARDISO15765
     }
 
-    public class MessageFilter
-    {
-        public FilterEnum FilterType;
-        public List<byte> Mask;
-        public List<byte> Pattern;
-        public List<byte> FlowControl;
-        public TxFlag TxFlags;
-        public int FilterId;
-
-        public MessageFilter()
-        {
-            Mask = new List<byte>();
-            Pattern = new List<byte>();
-            FlowControl = new List<byte>();
-            TxFlags = TxFlag.NONE;
-        }
-
-        public MessageFilter(CommonFilter FilterType, List<byte> Match)
-        {
-            Mask = new List<byte>();
-            Pattern = new List<byte>();
-            FlowControl = new List<byte>();
-            TxFlags = TxFlag.NONE;
-
-            switch (FilterType)
-            {
-                case CommonFilter.PASSALL:
-                    PassAll();
-                    break;
-                case CommonFilter.PASS:
-                    Pass(Match);
-                    break;
-                case CommonFilter.BLOCK:
-                    Block(Match);
-                    break;
-                case CommonFilter.STANDARDISO15765:
-                    StandardISO15765(Match);
-                    break;
-                case CommonFilter.NONE:
-                    break;
-            }
-
-        }
-
-        public void Clear()
-        {
-            Mask.Clear();
-            Pattern.Clear();
-            FlowControl.Clear();
-        }
-
-        public void PassAll()
-        {
-            Clear();
-            Mask.Add(0x00);
-            Pattern.Add(0x00);
-            FilterType = FilterEnum.PASS_FILTER;
-        }
-
-        public void Pass(List<byte> Match)
-        {
-            ExactMatch(Match);
-            FilterType = FilterEnum.PASS_FILTER;
-        }
-
-        public void Block(List<byte> Match)
-        {
-            ExactMatch(Match);
-            FilterType = FilterEnum.BLOCK_FILTER;
-        }
-
-        private void ExactMatch(List<byte> Match)
-        {
-            Clear();
-            Mask = Enumerable.Repeat((byte)0xFF, Match.Count).ToList();
-            Pattern = Match;
-        }
-        public void StandardISO15765(List<byte> SourceAddress)
-        {
-            //Should throw exception??
-            if (SourceAddress.Count != 4)
-                return;
-            Clear();
-            Mask.Add(0xFF);
-            Mask.Add(0xFF);
-            Mask.Add(0xFF);
-            Mask.Add(0xFF);
-
-            Pattern.AddRange(SourceAddress);
-            Pattern[3] += 0x08;
-
-            FlowControl.AddRange(SourceAddress);
-
-            TxFlags = TxFlag.ISO15765_FRAME_PAD;
-            FilterType = FilterEnum.FLOW_CONTROL_FILTER;
-        }
-    }
 
     [Flags]
-    public enum RxStatus
+    public enum J2534RXFLAG
     {
         NONE = 0x00000000,
         TX_MSG_TYPE = 0x00000001,
@@ -182,7 +59,7 @@ namespace J2534DotNet
     }
 
     [Flags]
-    public enum ConnectFlag
+    public enum J2534CONNECTFLAG
     {
         NONE = 0x0000,
         SNIFF_MODE = 0x10000000,    //Drewtech only
@@ -193,7 +70,7 @@ namespace J2534DotNet
     }
 
     [Flags]
-    public enum TxFlag
+    public enum J2534TXFLAG
     {
         NONE = 0x00000000,
         SCI_TX_VOLTAGE = 0x00800000,
@@ -204,7 +81,7 @@ namespace J2534DotNet
         ISO15765_FRAME_PAD = 0x00000040
     }
 
-    public enum Protocols
+    public enum J2534PROTOCOL
     {
         J1850VPW = 0x01,
         J1850PWM = 0x02,
@@ -218,7 +95,7 @@ namespace J2534DotNet
         SCI_B_TRANS = 0x0A
     }
 
-    public enum BaudRate
+    public enum J2534BAUD
     {
         ISO9141 = 10400,
         ISO9141_10400 = 10400,
@@ -250,7 +127,7 @@ namespace J2534DotNet
         SCI_62500 = 62500
     }
 
-    public enum Pin
+    public enum J2534PIN
     {
         AUX = 0,
         PIN_6 = 6,
@@ -262,14 +139,14 @@ namespace J2534DotNet
         PIN_15 = 15
     }
 
-    public enum FilterEnum
+    public enum J2534FILTER
     {
         PASS_FILTER = 0x01,
         BLOCK_FILTER = 0x02,
         FLOW_CONTROL_FILTER = 0x03
     }
 
-    enum Ioctl
+    enum J2534IOCTL
     {
         GET_CONFIG = 0x01,
         SET_CONFIG = 0x02,
@@ -286,7 +163,7 @@ namespace J2534DotNet
         READ_PROG_VOLTAGE = 0x0E
     }
 
-    public enum J2534Err
+    public enum J2534ERR
     {
         STATUS_NOERROR = 0x00,
         ERR_NOT_SUPPORTED = 0x01,
@@ -317,7 +194,7 @@ namespace J2534DotNet
         ERR_INVALID_DEVICE_ID = 0x1A
     }
 
-    public enum cfg_prm_id  //Parameter selection values used in PassThruIoCtl->Set/Get Config
+    public enum J2534PARAMETER  //Parameter selection values used in PassThruIoCtl->Set/Get Config
     {
         DATA_RATE = 0x01,
         LOOP_BACK = 0x03,
@@ -373,12 +250,5 @@ namespace J2534DotNet
         INPUT_RANGE_HIGH = 0x8027,          //-2
         ADC_READINGS_PER_SECOND = 0x10000,  //Drewtech
         ADC_READINGS_PER_SAMPLE = 0x20000  //Drewtech
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct SConfig
-    {
-        public int Parameter;
-        public int Value;
     }
 }
