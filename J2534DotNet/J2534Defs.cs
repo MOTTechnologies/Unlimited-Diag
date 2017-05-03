@@ -53,7 +53,7 @@ namespace J2534DotNet
         RX_BREAK = 0x00000004,
         TX_INDICATION = 0x00000008,
         ISO15765_PADDING_ERROR = 0x00000010,
-        ISO15765_ADDR_TYPE = 0x00000080,
+        ISO15765_EXT_ADDR = 0x00000080,
         CAN_29BIT_ID = 0x00000100
     }
 
@@ -61,11 +61,14 @@ namespace J2534DotNet
     public enum J2534CONNECTFLAG
     {
         NONE = 0x0000,
-        SNIFF_MODE = 0x10000000,    //Drewtech only
-        ISO9141_K_LINE_ONLY = 0x1000,
-        CAN_ID_BOTH = 0x0800,
+        CAN_29BIT_ID = 0x0100,
         ISO9141_NO_CHECKSUM = 0x0200,
-        CAN_29BIT_ID = 0x0100
+        CAN_ID_BOTH = 0x0800,
+        ISO9141_K_LINE_ONLY = 0x1000,
+        DT_ISO9141_LISTEN_L_LINE = 0x08000000,
+        SNIFF_MODE = 0x10000000,                    //Drewtech only
+        ISO9141_FORD_HEADER = 0x20000000,           //Drewtech only
+        ISO9141_NO_CHECKSUM_DT = 0x40000000         //Drewtech only
     }
 
     [Flags]
@@ -159,7 +162,21 @@ namespace J2534DotNet
         CLEAR_FUNCT_MSG_LOOKUP_TABLE = 0x0B,
         ADD_TO_FUNCT_MSG_LOOKUP_TABLE = 0x0C,
         DELETE_FROM_FUNCT_MSG_LOOKUP_TABLE = 0x0D,
-        READ_PROG_VOLTAGE = 0x0E
+        READ_PROG_VOLTAGE = 0x0E,
+        READ_CH1_VOLTAGE = 0x10000,
+        READ_CH2_VOLTAGE = 0x10001,
+        READ_CH3_VOLTAGE = 0x10002,
+        READ_CH4_VOLTAGE = 0x10003,
+        READ_CH5_VOLTAGE = 0x10004,
+        READ_CH6_VOLTAGE = 0x10005,
+        READ_ANALOG_CH1 = 0x10010,
+        READ_ANALOG_CH2 = 0x10011,
+        READ_ANALOG_CH3 = 0x10012,
+        READ_ANALOG_CH4 = 0x10013,
+        READ_ANALOG_CH5 = 0x10014,
+        READ_ANALOG_CH6 = 0x10015,
+        READ_TIMESTAMP =	0x10100,
+        DT_IOCTL_VVSTATS = 0x20000000
     }
 
     public enum J2534ERR
@@ -230,7 +247,6 @@ namespace J2534DotNet
         FIVE_BAUD_MOD = 0x21,
         BS_TX = 0x22,
         STMIN_TX = 0x23,
-        //T3_MAX = 0x24,
         ISO15765_WFT_MAX = 0x25,
         ISO15765_SIMULTANEOUS = 0x10000000, /*DT*/ 
         DT_ISO15765_PAD_BYTE = 0x10000001,  /*DT*/
