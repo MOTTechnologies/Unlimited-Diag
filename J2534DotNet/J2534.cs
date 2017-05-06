@@ -488,15 +488,15 @@ namespace J2534DotNet
             return Msg;
         }
 
-        public int GetConfig(SConfig Parameter)
+        public int GetConfig(J2534PARAMETER Parameter)
         {
             int value = 0;
             IntPtr input = Marshal.AllocHGlobal(16);
 
             Marshal.WriteInt32(input, 0, 1);
             Marshal.WriteInt32(input, 4, (int)input + 8);
-            Marshal.WriteInt32(input, 8, (int)Parameter.Parameter);
-            Marshal.WriteInt32(input, 12, Parameter.Value);
+            Marshal.WriteInt32(input, 8, (int)Parameter);
+            //Marshal.WriteInt32(input, 12, Parameter.Value);
 
             Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.GET_CONFIG, input, IntPtr.Zero);
 
@@ -513,7 +513,7 @@ namespace J2534DotNet
             return value;
         }
 
-        public bool SetConfig(SConfig Parameter)
+        public bool SetConfig(J2534PARAMETER Parameter, int Value)
         {
 
             IntPtr input = Marshal.AllocHGlobal(16);
@@ -521,8 +521,8 @@ namespace J2534DotNet
 
             Marshal.WriteInt32(input, 0, 1);
             Marshal.WriteInt32(input, 4, (int)input + 8);
-            Marshal.WriteInt32(input, 8, (int)Parameter.Parameter);
-            Marshal.WriteInt32(input, 12, Parameter.Value);
+            Marshal.WriteInt32(input, 8, (int)Parameter);
+            Marshal.WriteInt32(input, 12, Value);
 
             Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.SET_CONFIG, input, output);
 

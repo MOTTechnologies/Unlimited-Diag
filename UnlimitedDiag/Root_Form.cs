@@ -30,6 +30,7 @@ using System.Linq;
 using System.Windows.Forms;
 using J2534DotNet;
 using SAE;
+
 namespace UnlimitedDiag
 {
     public partial class Root_Form : Form
@@ -54,9 +55,9 @@ namespace UnlimitedDiag
                 return;
 
             Ch.StartMsgFilter(new MessageFilter(COMMONFILTER.STANDARDISO15765, new List<byte>{ 0x00, 0x00, 0x07, 0xE0 }));
-            Ch.SetConfig(new J2534DotNet.SConfig(J2534PARAMETER.LOOP_BACK, 0));
+            //Ch.SetConfig(new J2534DotNet.SConfig(J2534PARAMETER.LOOP_BACK, 0));
 
-            SAEDiag Diagnostic = new SAEDiag();
+            SAE.SAEDiag Diagnostic = new SAE.SAEDiag();
 
             if (Diagnostic.Ping(Ch))
                 MessageBox.Show("We have a successful ping!");
