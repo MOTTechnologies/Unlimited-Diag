@@ -3,39 +3,53 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 namespace J2534DotNet
 {
+    [StructLayout(LayoutKind.Explicit)]
     public class J2534Message
     {
+        [FieldOffset(0), MarshalAs(UnmanagedType.U4)]
+        public J2534PROTOCOL ProtocolID;
+        [FieldOffset(4), MarshalAs(UnmanagedType.U4)]
+        public J2534RXFLAG RxStatus;
+        [FieldOffset(8), MarshalAs(UnmanagedType.U4)]
+        public J2534TXFLAG TxFlags;
+        [FieldOffset(12), MarshalAs(UnmanagedType.U4)]
+        public uint Timestamp;
+        [FieldOffset(16), MarshalAs(UnmanagedType.U4)]
+        private int Datasize;
+        [FieldOffset(20), MarshalAs(UnmanagedType.U4)]
+        public uint ExtraDataIndex;
+        [FieldOffset(24), MarshalAs(UnmanagedType.ByValArray, ArraySubType = UnmanagedType.U1, SizeConst = 4128)]
+        private byte[] data;
+
         public J2534Message()
         {
-            Data = new List<byte>();
+            data = new byte[4128];
         }
+
         public J2534Message(J2534PROTOCOL ProtocolID, J2534TXFLAG TxFlags, List<byte> Data)
         {
             this.ProtocolID = ProtocolID;
             this.TxFlags = TxFlags;
+            data = new byte[4128];
             this.Data = Data;
         }
-        public J2534PROTOCOL ProtocolID { get; set; }
-        public J2534RXFLAG RxFlags { get; set; }
-        public J2534TXFLAG TxFlags { get; set; }
-        public uint Timestamp { get; set; }
-        public uint ExtraDataIndex { get; set; }
-        private List<byte> data;
+
         public List<byte> Data
         {
             get
             {
-                return data;
+                return data.Take(Datasize).ToList();
             }
             set
             {
-                if (value.Count < 4129)
-                    data = value;
-                else
+                if (value.Count > 4128)
                     throw new ArgumentException("Message data length greater than 4128");
+                Array.Copy(value.ToArray(), data, value.Count);
+                Datasize = value.Count;
             }
         }
     }
@@ -44,7 +58,12 @@ namespace J2534DotNet
     {
         public J2534Message Message { get; set; }
         public int Interval { get; set; }
-        internal int MessageID { get; set; }
+        internal int MessageID;
+        public PeriodicMsg(J2534Message Message, int Interval)
+        {
+            this.Message = Message;
+            this.Interval = Interval;
+        }
     }
 
     public class MessageFilter
@@ -88,7 +107,6 @@ namespace J2534DotNet
                 case COMMONFILTER.NONE:
                     break;
             }
-
         }
 
         public void Clear()
@@ -145,14 +163,48 @@ namespace J2534DotNet
         }
     }
 
+    [StructLayout(LayoutKind.Explicit)]
     public class SConfig
     {
-        public J2534PARAMETER Parameter { get; set; }
-        public int Value { get; set; }
+        [FieldOffset(0), MarshalAs(UnmanagedType.U4)]
+        public J2534PARAMETER Parameter;
+        [FieldOffset(4), MarshalAs(UnmanagedType.U4)]
+        public int Value;
+
         public SConfig(J2534PARAMETER Parameter, int Value)
         {
             this.Parameter = Parameter;
             this.Value = Value;
+        }
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public class SConfigList
+    {
+        [FieldOffset(0), MarshalAs(UnmanagedType.U4)]
+        public int NumOfParams;
+        [FieldOffset(4)]
+        public IntPtr Pointer;
+
+        public SConfigList(int NumOfParams, IntPtr Pointer)
+        {
+            this.NumOfParams = NumOfParams;
+            this.Pointer = Pointer;
+        }
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public class SByteArray
+    {
+        [FieldOffset(0), MarshalAs(UnmanagedType.U4)]
+        public int NumOfBytes;
+        [FieldOffset(4)]
+        public IntPtr Pointer;
+
+        public SByteArray(int NumOfBytes, IntPtr Pointer)
+        {
+            this.NumOfBytes = NumOfBytes;
+            this.Pointer = Pointer;
         }
     }
 }

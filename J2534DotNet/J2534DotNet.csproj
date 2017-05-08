@@ -46,6 +46,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
@@ -70,7 +71,7 @@
     </Compile>
     <Compile Include="J2534.cs" />
     <Compile Include="J2534Discovery.cs" />
-    <Compile Include="J2534Defs.cs" />
+    <Compile Include="J2534Definitions.cs" />
     <Compile Include="J2534RegisteredDevice.cs" />
     <Compile Include="J2534Wrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

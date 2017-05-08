@@ -1,60 +1,23 @@
-﻿#region Copyright (c) 2010, Michael Kelly
-/* 
- * Copyright (c) 2010, Michael Kelly
- * michael.e.kelly@gmail.com
- * http://michael-kelly.com/
- * 
- * All rights reserved.
- * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
- * Neither the name of the organization nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
- */
-#endregion License
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 
 namespace J2534DotNet
 {
-    internal unsafe struct UnsafePassThruMsg
-    {
-        public uint ProtocolID;
-        public uint RxStatus;
-        public uint TxFlags;
-        public uint Timestamp;
-        public uint DataSize;
-        public uint ExtraDataIndex;
-        public fixed byte Data[4128];
-    }
-
     internal static class NativeMethods
     {
         [DllImport("kernel32.dll")]
-        public static extern IntPtr LoadLibrary(string dllToLoad);
+        public static extern IntPtr LoadLibrary(string Library);
 
         [DllImport("kernel32.dll")]
-        public static extern IntPtr GetProcAddress(IntPtr hModule, string procedureName);
+        public static extern IntPtr GetProcAddress(IntPtr pLibrary, string FunctionName);
 
         [DllImport("kernel32.dll")]
-        public static extern bool FreeLibrary(IntPtr hModule);
+        public static extern bool FreeLibrary(IntPtr pLibrary);
     }
 
     internal class J2534APIWrapper
     {
-        const int FUNCTION_NOT_ASSIGNED = 0xFFFE;
+        public const int FUNCTION_NOT_ASSIGNED = 0x7EADBEEF;
 
         [Flags]
         private enum API_SIGNATURE
@@ -88,7 +51,7 @@ namespace J2534DotNet
         const API_SIGNATURE V404_SIGNATURE = (API_SIGNATURE)0x3FFF;
         const API_SIGNATURE V5_SIGNATURE = (API_SIGNATURE)0xFFFFF;
 
-        private IntPtr DLL_Handle;
+        private IntPtr pLibrary;
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         internal delegate int PassThruConnect(int DeviceID, int ProtocolID, int ConnectFlags, int Baud, ref int ChannelID);
@@ -100,15 +63,15 @@ namespace J2534DotNet
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         internal delegate int PassThruReadMsgs(int ChannelID, IntPtr pUMsgArray, ref int NumMsgs, int Timeout);
-        internal PassThruReadMsgs ReadMsgs = delegate (int ChannelID, IntPtr pUMsgArray, ref int NumMsgs, int Timeout) { return FUNCTION_NOT_ASSIGNED; };
+        internal PassThruReadMsgs ReadMsgs = delegate (int ChannelID, IntPtr pMsgArray, ref int NumMsgs, int Timeout) { return FUNCTION_NOT_ASSIGNED; };
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         internal delegate int PassThruWriteMsgs(int ChannelID, IntPtr pUMsgArray, ref int NumMsgs, int Timeout);
-        internal PassThruWriteMsgs WriteMsgs = delegate (int ChannelID, IntPtr pUMsgArray, ref int NumMsgs, int Timeout) { return FUNCTION_NOT_ASSIGNED; };
+        internal PassThruWriteMsgs WriteMsgs = delegate (int ChannelID, IntPtr pMsgArray, ref int NumMsgs, int Timeout) { return FUNCTION_NOT_ASSIGNED; };
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate int PassThruStartPeriodicMsg(int ChannelID, ref UnsafePassThruMsg pUMsg, ref int MsgID, int Interval);
-        internal PassThruStartPeriodicMsg StartPeriodicMsg = delegate (int ChannelID, ref UnsafePassThruMsg pUMsg, ref int MsgID, int Interval) { return FUNCTION_NOT_ASSIGNED; };
+        internal delegate int PassThruStartPeriodicMsg(int ChannelID, IntPtr Msg, ref int MsgID, int Interval);
+        internal PassThruStartPeriodicMsg StartPeriodicMsg = delegate (int ChannelID, IntPtr pMsg, ref int MsgID, int Interval) { return FUNCTION_NOT_ASSIGNED; };
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         internal delegate int PassThruStopPeriodicMsg(int ChannelID, int MsgID);
@@ -119,18 +82,17 @@ namespace J2534DotNet
         (
             int ChannelID,
             int FilterType,
-            ref UnsafePassThruMsg uMaskMsg,
-            ref UnsafePassThruMsg uPatternMsg,
-            //ref UnsafePassThruMsg uFlowControlMsg,
-            IntPtr puFlowControlMsg,
+            IntPtr pMaskMsg,
+            IntPtr PatternMsg,
+            IntPtr pFlowControlMsg,
             ref int FilterID
         );
         internal PassThruStartMsgFilter StartMsgFilter = delegate (
             int ChannelID,
             int FilterType,
-            ref UnsafePassThruMsg uMaskMsg,
-            ref UnsafePassThruMsg uPatternMsg,
-            IntPtr puFlowControlMsg,
+            IntPtr pMaskMsg,
+            IntPtr pPatternMsg,
+            IntPtr pFlowControlMsg,
             ref int FilterID
         ) { return FUNCTION_NOT_ASSIGNED; };
 
@@ -186,8 +148,8 @@ namespace J2534DotNet
         internal PassThruSelect Select = delegate (IntPtr pSChannelSet, int SelectType, int Timeout) { return FUNCTION_NOT_ASSIGNED; };
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate int PassThruQueueMsgs(int ChannelID, IntPtr pUMsgArray, ref int NumMsgs);
-        internal PassThruQueueMsgs QueueMsgs = delegate (int ChannelID, IntPtr pUMsgArray, ref int NumMsgs) { return FUNCTION_NOT_ASSIGNED; };
+        internal delegate int PassThruQueueMsgs(int ChannelID, IntPtr pMsgArray, ref int NumMsgs);
+        internal PassThruQueueMsgs QueueMsgs = delegate (int ChannelID, IntPtr pMsgArray, ref int NumMsgs) { return FUNCTION_NOT_ASSIGNED; };
         
         //***************Drewtech only********************
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
@@ -198,103 +160,103 @@ namespace J2534DotNet
         {
             API_SIGNATURE APIsignature = API_SIGNATURE.NONE;
 
-            DLL_Handle = NativeMethods.LoadLibrary(FileName);
+            pLibrary = NativeMethods.LoadLibrary(FileName);
 
-            if (DLL_Handle == IntPtr.Zero)
+            if (pLibrary == IntPtr.Zero)
                 return false;
 
-            IntPtr pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruOpen");
+            IntPtr pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruOpen");
             if (pFunction != IntPtr.Zero)
             {
                 Open = (PassThruOpen)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruOpen));
                 APIsignature |= API_SIGNATURE.OPEN;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruClose");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruClose");
             if (pFunction != IntPtr.Zero)
             {
                 Close = (PassThruClose)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruClose));
                 APIsignature |= API_SIGNATURE.CLOSE;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruConnect");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruConnect");
             if (pFunction != IntPtr.Zero)
             {
                 Connect = (PassThruConnect)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruConnect));
                 APIsignature |= API_SIGNATURE.CONNECT;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruDisconnect");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruDisconnect");
             if (pFunction != IntPtr.Zero)
             {
                 Disconnect = (PassThruDisconnect)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruDisconnect));
                 APIsignature |= API_SIGNATURE.DISCONNECT;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruReadMsgs");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruReadMsgs");
             if (pFunction != IntPtr.Zero)
             {
                 ReadMsgs = (PassThruReadMsgs)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruReadMsgs));
                 APIsignature |= API_SIGNATURE.READMSGS;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruWriteMsgs");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruWriteMsgs");
             if (pFunction != IntPtr.Zero)
             {
                 WriteMsgs = (PassThruWriteMsgs)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruWriteMsgs));
                 APIsignature |= API_SIGNATURE.WRITEMSGS;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruStartPeriodicMsg");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruStartPeriodicMsg");
             if (pFunction != IntPtr.Zero)
             {
                 StartPeriodicMsg = (PassThruStartPeriodicMsg)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruStartPeriodicMsg));
                 APIsignature |= API_SIGNATURE.STARTPERIODICMSG;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruStopPeriodicMsg");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruStopPeriodicMsg");
             if (pFunction != IntPtr.Zero)
             {
                 StopPeriodicMsg = (PassThruStopPeriodicMsg)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruStopPeriodicMsg));
                 APIsignature |= API_SIGNATURE.STOPPERIODICMSG;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruStartMsgFilter");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruStartMsgFilter");
             if (pFunction != IntPtr.Zero)
             {
                 StartMsgFilter = (PassThruStartMsgFilter)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruStartMsgFilter));
                 APIsignature |= API_SIGNATURE.STARTMSGFILTER;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruStopMsgFilter");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruStopMsgFilter");
             if (pFunction != IntPtr.Zero)
             {
                 StopMsgFilter = (PassThruStopMsgFilter)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruStopMsgFilter));
                 APIsignature |= API_SIGNATURE.STOPMSGFILTER;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruSetProgrammingVoltage");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruSetProgrammingVoltage");
             if (pFunction != IntPtr.Zero)
             {
                 SetProgrammingVoltage = (PassThruSetProgrammingVoltage)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruSetProgrammingVoltage));
                 APIsignature |= API_SIGNATURE.SETPROGRAMMINGVOLTAGE;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruReadVersion");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruReadVersion");
             if (pFunction != IntPtr.Zero)
             {
                 ReadVersion = (PassThruReadVersion)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruReadVersion));
                 APIsignature |= API_SIGNATURE.READVERSION;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruGetLastError");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruGetLastError");
             if (pFunction != IntPtr.Zero)
             {
                 GetLastError = (PassThruGetLastError)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruGetLastError));
                 APIsignature |= API_SIGNATURE.GETLASTERROR;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruIoctl");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruIoctl");
             if (pFunction != IntPtr.Zero)
             {
                 IOCtl = (PassThruIoctl)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruIoctl));
@@ -302,51 +264,51 @@ namespace J2534DotNet
             }
 
             //********************J2534v5*********************
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruScanForDevices");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruScanForDevices");
             if (pFunction != IntPtr.Zero)
             {
                 ScanForDevices = (PassThruScanForDevices)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruScanForDevices));
                 APIsignature |= API_SIGNATURE.SCANFORDEVICES;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruGetNextDevice");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruGetNextDevice");
             if (pFunction != IntPtr.Zero)
             {
                 GetNextDevice = (PassThruGetNextDevice)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruGetNextDevice));
                 APIsignature |= API_SIGNATURE.GETNEXTDEVICE;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruLogicalConnect");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruLogicalConnect");
             if (pFunction != IntPtr.Zero)
             {
                 LogicalConnect = (PassThruLogicalConnect)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruLogicalConnect));
                 APIsignature |= API_SIGNATURE.LOGICALCONNECT;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruLogicalDisconnect");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruLogicalDisconnect");
             if (pFunction != IntPtr.Zero)
             {
                 LogicalDisconnect = (PassThruLogicalDisconnect)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruLogicalDisconnect));
                 APIsignature |= API_SIGNATURE.LOGICALDISCONNECT;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruSelect");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruSelect");
             if (pFunction != IntPtr.Zero)
             {
                 Select = (PassThruSelect)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruSelect));
                 APIsignature |= API_SIGNATURE.SELECT;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruQueueMsgs");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruQueueMsgs");
             if (pFunction != IntPtr.Zero)
             {
                 QueueMsgs = (PassThruQueueMsgs)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruQueueMsgs));
                 APIsignature |= API_SIGNATURE.QUEUEMESSAGES;
             }
 
-            pFunction = NativeMethods.GetProcAddress(DLL_Handle, "PassThruGetNextCarDAQ");
+            pFunction = NativeMethods.GetProcAddress(pLibrary, "PassThruGetNextCarDAQ");
             if (pFunction != IntPtr.Zero)
-                IOCtl = (PassThruIoctl)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruIoctl));
+                GetNextCarDAQ = (PassThruGetNextCarDAQ)Marshal.GetDelegateForFunctionPointer(pFunction, typeof(PassThruGetNextCarDAQ));
 
             if(APIsignature == V202_SIGNATURE ||
                 APIsignature == V404_SIGNATURE||
@@ -357,7 +319,7 @@ namespace J2534DotNet
 
         internal bool FreeLibrary()
         {
-            return NativeMethods.FreeLibrary(DLL_Handle);
+            return NativeMethods.FreeLibrary(pLibrary);
         }
     }
 }

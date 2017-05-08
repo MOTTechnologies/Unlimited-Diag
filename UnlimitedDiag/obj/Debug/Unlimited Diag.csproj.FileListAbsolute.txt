@@ -18,5 +18,5 @@ C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\Unlimit
 C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\UnlimitedDiag\obj\Debug\Unlimited Diag.csproj.GenerateResource.Cache
 C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\UnlimitedDiag\obj\Debug\UnlimitedDiag.Root_Form.resources
 C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\UnlimitedDiag\bin\Debug\Unlimited-Diag.exe.config
-C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\UnlimitedDiag\bin\Debug\OBD_Connection.dll
-C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\UnlimitedDiag\bin\Debug\OBD_Connection.pdb
+C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\UnlimitedDiag\bin\Debug\SAEDiag.dll
+C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\UnlimitedDiag\bin\Debug\SAEDiag.pdb

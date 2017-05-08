@@ -13,16 +13,16 @@ namespace J2534DotNet
     public partial class LibrarySelectionForm : Form
     {
 
-        public  List<J2534RegisteredDevice> AvailableDevices;
-        public  List<J2534RegisteredDevice> SelectedDevices;
+        public  List<J2534RegisteryEntry> AvailableDevices;
+        public  List<J2534RegisteryEntry> SelectedDevices;
 
         public LibrarySelectionForm()
         {
             InitializeComponent();
-            AvailableDevices  = J2534Discovery.GetRegisteredDevices();
-            SelectedDevices = new List<J2534RegisteredDevice>();
+            AvailableDevices  = J2534Discovery.GetRegisteryEntries();
+            SelectedDevices = new List<J2534RegisteryEntry>();
 
-            foreach (J2534RegisteredDevice device in AvailableDevices)
+            foreach (J2534RegisteryEntry device in AvailableDevices)
                 DeviceSelectList.Items.Add(device.Vendor + " - " + device.Name);
 
             DeviceSelectList.SelectedIndex = 0;
@@ -36,7 +36,7 @@ namespace J2534DotNet
             {
                 if(AvailableDevices.Find(d => d.FunctionLibrary == LibBrowseDialog.FileName) == null)
                 {
-                    J2534RegisteredDevice new_device = new J2534RegisteredDevice();
+                    J2534RegisteryEntry new_device = new J2534RegisteryEntry();
                     new_device.ConfigApplication = "Unknown";
                     new_device.Vendor = "USER DEFINED";
                     new_device.Name = LibBrowseDialog.SafeFileName;
@@ -50,7 +50,7 @@ namespace J2534DotNet
 
         private void UpdateDeviceDetails(object sender, EventArgs e)
         {
-            J2534RegisteredDevice selected_device = AvailableDevices[DeviceSelectList.SelectedIndex];
+            J2534RegisteryEntry selected_device = AvailableDevices[DeviceSelectList.SelectedIndex];
 
             DeviceDetails.Text =  " Config Application\t" + selected_device.ConfigApplication + "\r\n";
             DeviceDetails.Text += " Function Library\t" + selected_device.FunctionLibrary + "\r\n\r\n";
