@@ -6,9 +6,9 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using J2534DotNet;
+using J2534;
 
-namespace J2534DotNet
+namespace J2534
 {
     public partial class LibrarySelectionForm : Form
     {

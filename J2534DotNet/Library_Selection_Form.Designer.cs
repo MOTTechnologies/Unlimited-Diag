@@ -1,4 +1,4 @@
-﻿namespace J2534DotNet
+﻿namespace J2534
 {
     partial class LibrarySelectionForm
     {

@@ -3,7 +3,7 @@ using Microsoft.Win32;
 using System.Configuration;
 using System.IO;
 
-namespace J2534DotNet
+namespace J2534
 {
     static public class J2534Discovery
     {
@@ -12,27 +12,25 @@ namespace J2534DotNet
             List<J2534PhysicalDevice> PhysicalDeviceList = new List<J2534PhysicalDevice>();
             foreach (string DllFile in FindLibrarys())
             {
-                J2534Lib Library = new J2534Lib(DllFile);
+                J2534DLL Library = new J2534DLL(DllFile);
                 if(Library.IsLoaded)
                 {
-                    List<string> Devices = new List<string>();
-                    //while(Library.GetNextCarDAQ())
-                    //    Devices.Add(Library.NextDeviceName);
-                    //if(Devices.Count > 0)
-                    //{
-                    //    foreach(string DeviceName in Devices)
-                    //    {
-                    //        J2534PhysicalDevice PhysicalDevice = Library.ConstructDevice(DeviceName);
-                    //        if(PhysicalDevice.IsConnected)
-                    //            PhysicalDeviceList.Add(PhysicalDevice);
-                    //    }
-                    //}
-                    //else if(Library.Status == J2534APIWrapper.FUNCTION_NOT_ASSIGNED)
-                    //{
+                    GetNextCarDAQResults CarDAQList = Library.GetNextCarDAQ();
+                    //If its nota drewtech library, then attempt to connect a device
+                    if((int)Library.Status == J2534APIWrapper.FUNCTION_NOT_ASSIGNED)
+                    {
                         J2534PhysicalDevice PhysicalDevice = Library.ConstructDevice();
                         if (PhysicalDevice.IsConnected)
                             PhysicalDeviceList.Add(PhysicalDevice);
-                    //}
+                    }
+                    //If it is a Drewtech library, and at least one device is present
+                    while(!CarDAQList.Empty)
+                    {
+                        J2534PhysicalDevice PhysicalDevice = Library.ConstructDevice(CarDAQList.Device);
+                        if (PhysicalDevice.IsConnected)
+                            PhysicalDeviceList.Add(PhysicalDevice);
+                        CarDAQList = Library.GetNextCarDAQ();
+                    }
                 }
             }
             return PhysicalDeviceList;

@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Linq;
-namespace J2534DotNet
+namespace J2534
 {
 
 

@@ -8,8 +8,7 @@ namespace SAE
 {
     public class SAEMessage
     {
-        public  List<byte> tx_header;   //outbound header
-        public  List<byte> rx_header;   //inbound header
+        internal ISAEHeader HeaderClass;
         private List<byte> tx_message;  //outbound raw message including header
         public List<byte> rx_message;  //inbound raw message including header
         private List<byte> tx_data;     //inner message data to be sent
@@ -35,64 +34,55 @@ namespace SAE
         //    msg.RawMessage = byte_array;
         //    return msg;
         //}
-        public SAEMessage(List<byte> TxHeader, List<byte> RxHeader)
+
+        public SAEMessage(ISAEHeader HeaderClass)
         {
-            tx_header = TxHeader;
-            rx_header = RxHeader;
+            this.HeaderClass = HeaderClass;
             tx_data = new List<byte>();
             rx_data = new List<byte>();
         }
+
         public bool Receive(List<byte> Receive_Message)
         {
             Failure = true;
             IsValidResponse = false;
             if (Receive_Message == null)
-                return IsValidResponse;
-
-            //if message is possibly long enough
-            if (Receive_Message.Count > rx_header.Count)
+                return false;
+            try
             {
-                //do a byte comparison of the header in reverse because its likely to find non-matches quicker
-                for(int i = rx_header.Count - 1;i > -1;i--)
-                {
-                    if(Receive_Message[i] != rx_header[i])
-                        return IsValidResponse; //Not valid
-                }
-                //check for a success message matching the sent mode byte
-                if(Receive_Message[rx_header.Count] == mode_byte + 0x40)
+                if (!HeaderClass.CheckRxHeader(Receive_Message))
+                    return false;
+
+                if (HeaderClass.BareRxMessage[0] == mode_byte + 0x40)
                 {
                     IsValidResponse = true;
                     Failure = false;
                     rx_message = Receive_Message;
-                    return IsValidResponse; //Is valid
+                    return true;
                 }
 
-                if (Receive_Message[rx_header.Count] != (byte)SAEModes.GENERAL_RESPONSE)
-                    return IsValidResponse; //Not valid
-
-                //This is the most likely path at this point
-                if(Receive_Message.Count > rx_header.Count + 2)
+                if (HeaderClass.BareRxMessage[0] != (byte)SAEModes.GENERAL_RESPONSE)
+                    return false;
+                if (HeaderClass.BareRxMessage.Count == 2)
                 {
-                    //if its a general response that is not for us
-                    if (Receive_Message[rx_header.Count + 1] != mode_byte)
-                        return IsValidResponse;
                     ResponseByte = Receive_Message.Last();
                     IsValidResponse = true;
                     rx_message = Receive_Message;
-                    return IsValidResponse;
+                    return true;
                 }
 
-                //Unusual case that likely will never happen, debateable wether its valid
-                else if (Receive_Message.Count == rx_header.Count + 2)
-                {
-                    //This response is not specifically for the sent message, but is valid
-                    ResponseByte = Receive_Message.Last();
-                    IsValidResponse = true;
-                    rx_message = Receive_Message;
-                    return IsValidResponse;
-                }
+                if (HeaderClass.BareRxMessage[1] != mode_byte)
+                    return false;
+
+                ResponseByte = Receive_Message.Last();
+                IsValidResponse = true;
+                rx_message = Receive_Message;
+                return true;
             }
-            return IsValidResponse;
+            catch
+            {
+                return false;
+            }
         }
 
         //private void StripResponseByteFromData(byte[] )
@@ -116,7 +106,7 @@ namespace SAE
                 tx_data = Data;
 
             List<byte> send_msg = new List<byte>();
-            send_msg.AddRange(tx_header);
+            //send_msg.AddRange(tx_header);
             send_msg.Add(Modebyte);
             if (UsePIDByte)
                 send_msg.Add(PID);

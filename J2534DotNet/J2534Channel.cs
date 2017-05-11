@@ -1,242 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 
-namespace J2534DotNet
+namespace J2534
 {
-    internal class J2534Lib:IDisposable
-    {
-        private bool disposed = false;
-        internal string FileName;
-        internal bool IsLoaded;
-        internal J2534APIWrapper API;
-        internal string NextDeviceName;
-        internal string NextDeviceAddr;
-        internal int NextDeviceVer;
-        internal int Status;
-        internal J2534Lib(string LibFile)
-        {
-            FileName = LibFile;
-            API = new J2534DotNet.J2534APIWrapper();
-            Load();
-        }
-
-        internal bool Load()
-        {
-            IsLoaded = API.LoadJ2534Library(FileName);
-            return IsLoaded;
-        }
-
-        internal bool Free()
-        {
-            IsLoaded = API.FreeLibrary();   //Does this return a true or false????
-            return IsLoaded;
-        }
-
-        internal J2534PhysicalDevice ConstructDevice()
-        {
-            return new J2534DotNet.J2534PhysicalDevice(this);
-        }
-
-        internal J2534PhysicalDevice ConstructDevice(string DeviceName)
-        {
-            J2534PhysicalDevice dev = new J2534DotNet.J2534PhysicalDevice(this, DeviceName);
-            if (dev.IsConnected)
-                return dev;
-            return null;
-        }
-
-        internal void GetNextDevice()
-        {
-            //API.GetNextDevice(pSDevice);
-        }
-
-        internal bool GetNextCarDAQ()
-        {
-            IntPtr pName = Marshal.AllocHGlobal(80);
-            IntPtr pAddr = Marshal.AllocHGlobal(80);
-            int Ver = 0;
-
-            Status = API.GetNextCarDAQ(pName, ref Ver, pAddr);
-
-            if (Status == J2534APIWrapper.FUNCTION_NOT_ASSIGNED || pName == IntPtr.Zero)
-            {
-                Marshal.FreeHGlobal(pName);
-                Marshal.FreeHGlobal(pAddr);
-                return false;
-            }
-
-            NextDeviceName = Marshal.PtrToStringAnsi(pName);
-            NextDeviceAddr = Marshal.PtrToStringAnsi(pAddr);
-            NextDeviceVer = Ver;
-
-            Marshal.FreeHGlobal(pName);
-            Marshal.FreeHGlobal(pAddr);
-            
-            return true;
-        }
-
-        // Public implementation of Dispose pattern callable by consumers.
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        // Protected implementation of Dispose pattern.
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposed)
-                return;
-
-            if (disposing)
-            {
-                // Free any other managed objects here.
-                //
-            }
-
-            // Free any unmanaged objects here.
-            //
-            API.FreeLibrary();
-            disposed = true;
-        }
-    }
-
-    public class J2534PhysicalDevice
-    {
-        public J2534ERR Status;
-        //public object Status;
-        internal int DeviceID;
-        public bool IsConnected;
-        internal J2534Lib Library;
-        public string FirmwareVersion;
-        public string LibraryVersion;
-        public string APIVersion;
-
-        internal J2534PhysicalDevice(J2534Lib Library)
-        {
-            //Status = _Status;
-            this.Library = Library;
-            ConnectToDevice("");
-        }
-
-        //Devicenames that work are "CarDAQ-Plus1331" and "192.168.43.101"
-        internal J2534PhysicalDevice(J2534Lib Library, string DeviceName)
-        {
-            this.Library = Library;
-            ConnectToDevice(DeviceName);
-        }
-        public bool ConnectToDevice(string Device)
-        {
-            IntPtr DeviceNamePtr = IntPtr.Zero;
-            if (Device.Length > 0)
-                DeviceNamePtr = Marshal.StringToHGlobalAnsi(Device);
-            Status = (J2534ERR)Library.API.Open(DeviceNamePtr, ref DeviceID);
-
-            Marshal.FreeHGlobal(DeviceNamePtr);
-
-            if (Status == J2534ERR.STATUS_NOERROR)
-            {
-                IsConnected = true;
-                GetVersion();
-                return false;
-            }
-            return true;
-        }
-
-        public bool DisconnectDevice()
-        {
-            Status = (J2534ERR)Library.API.Close(DeviceID);
-            if (Status == J2534ERR.STATUS_NOERROR)
-            {
-                IsConnected = false;
-                return false;
-            }
-            return true;
-        }
-
-        public bool SetProgrammingVoltage(J2534PIN PinNumber, int Voltage)
-        {
-            Status = (J2534ERR)Library.API.SetProgrammingVoltage(DeviceID, (int)PinNumber, Voltage);
-            if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
-        }
-
-        private bool GetVersion()
-        {
-            IntPtr pFirmwareVersion = Marshal.AllocHGlobal(80);
-            IntPtr pDllVersion = Marshal.AllocHGlobal(80);
-            IntPtr pApiVersion = Marshal.AllocHGlobal(80);
-            Status = (J2534ERR)Library.API.ReadVersion(DeviceID, pFirmwareVersion, pDllVersion, pApiVersion);
-            if (Status == J2534ERR.STATUS_NOERROR)
-            {
-                FirmwareVersion = Marshal.PtrToStringAnsi(pFirmwareVersion);
-                LibraryVersion = Marshal.PtrToStringAnsi(pDllVersion);
-                APIVersion = Marshal.PtrToStringAnsi(pApiVersion);
-            }
-
-            Marshal.FreeHGlobal(pFirmwareVersion);
-            Marshal.FreeHGlobal(pDllVersion);
-            Marshal.FreeHGlobal(pApiVersion);
-
-            if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
-        }
-
-        public string GetLastError()
-        {
-            string return_string = null;
-            IntPtr pErrorDescription = Marshal.AllocHGlobal(80);
-            Status = (J2534ERR)Library.API.GetLastError(pErrorDescription);
-            if (Status == J2534ERR.STATUS_NOERROR)
-                return_string = Marshal.PtrToStringAnsi(pErrorDescription);
-
-            Marshal.FreeHGlobal(pErrorDescription);
-
-            return return_string;
-        }
-
-        public int MeasureBatteryVoltage()
-        {
-            int voltage = 0;
-            IntPtr output = Marshal.AllocHGlobal(4);
-
-            Status = (J2534ERR)Library.API.IOCtl(DeviceID, (int)J2534IOCTL.READ_VBATT, IntPtr.Zero, output);
-            if (Status == J2534ERR.STATUS_NOERROR)
-                voltage = Marshal.ReadInt32(output);
-
-            Marshal.FreeHGlobal(output);
-
-            return voltage;
-        }
-
-        public int MeasureProgrammingVoltage()
-        {
-            int voltage = 0;
-            IntPtr output = Marshal.AllocHGlobal(4);
-
-            Status = (J2534ERR)Library.API.IOCtl(DeviceID, (int)J2534IOCTL.READ_PROG_VOLTAGE, IntPtr.Zero, output);
-            if (Status == J2534ERR.STATUS_NOERROR)
-            {
-                voltage = Marshal.ReadInt32(output);
-            }
-
-            Marshal.FreeHGlobal(output);
-
-            return voltage;
-        }
-
-        public Channel ConstructChannel(J2534PROTOCOL ProtocolID, J2534BAUD Baud, J2534CONNECTFLAG ConnectFlags)
-        {
-            return new Channel(this, ProtocolID, Baud, ConnectFlags);
-        }
-    }
-
     public class Channel
     {
         private J2534PhysicalDevice Device;
@@ -264,9 +32,9 @@ namespace J2534DotNet
             this.ConnectFlags = ConnectFlags;
             Connect();
             Status = Device.Status;
-            RxMessages = new List<J2534DotNet.J2534Message>();
+            RxMessages = new List<J2534.J2534Message>();
             PeriodicMsgList = new List<PeriodicMsg>();
-            FilterList = new List<J2534DotNet.MessageFilter>();
+            FilterList = new List<J2534.MessageFilter>();
             DefaultTxTimeout = 50;
             DefaultRxTimeout = 250;
             DefaultTxFlag = J2534TXFLAG.NONE;
@@ -340,8 +108,8 @@ namespace J2534DotNet
         /// <returns>Returns 'false' if successful</returns>
         public bool SendMessage(List<byte> Message)
         {
-            List<J2534Message> MessageList = new List<J2534DotNet.J2534Message>();
-            MessageList.Add(new J2534DotNet.J2534Message(ProtocolID, DefaultTxFlag, Message));
+            List<J2534Message> MessageList = new List<J2534.J2534Message>();
+            MessageList.Add(new J2534.J2534Message(ProtocolID, DefaultTxFlag, Message));
 
             return SendMessages(MessageList);
         }
@@ -473,7 +241,7 @@ namespace J2534DotNet
 
         public bool GetConfig(J2534PARAMETER Parameter, ref int Value)
         {
-            List<SConfig> SConfig = GetConfig(new List<SConfig>() { new J2534DotNet.SConfig(Parameter, 0) });
+            List<SConfig> SConfig = GetConfig(new List<SConfig>() { new J2534.SConfig(Parameter, 0) });
             if (SConfig.Count > 0)
                 Value = SConfig[0].Value;
 

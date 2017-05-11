@@ -7,8 +7,8 @@
     <ProjectGuid>{DBA67A7E-B4C3-444E-A67A-8D9EA1037343}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SAEDiag</RootNamespace>
-    <AssemblyName>SAEDiag</AssemblyName>
+    <RootNamespace>SAE</RootNamespace>
+    <AssemblyName>SAEDiagnostics</AssemblyName>
     <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -40,11 +40,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="SAEHeaderClasses.cs" />
     <Compile Include="SAEDefs.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SAEDiag.cs" />
     <Compile Include="SAEMessage.cs" />
     <Compile Include="SAEProtocols.cs" />
+    <Compile Include="SAESession.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\J2534DotNet\J2534DotNet.csproj">

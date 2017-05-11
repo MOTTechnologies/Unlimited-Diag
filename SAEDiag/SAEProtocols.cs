@@ -3,28 +3,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using J2534DotNet;
+using J2534;
+using System.Collections;
 
-namespace SAEDiag
+namespace SAE
 {
-    class SAEProtocols
-    {
-        private List<byte> MessageTxHeader;
-        private List<byte> MessageRxHeader;
-        private List<byte> MessaseRxMask;
 
-        [Flags]
-        private enum J1850PriorityByte
-        {
-            PPP2 = 0x80,   //000 is high priority
-            PPP1 = 0x40,
-            PPP0 = 0x20,
-            H_BIT = 0x10,  //0=three byte header, 1=1 byte header
-            K_BIT = 0x08, //0=IFR required, 1=IFR not allowed
-            Y_BIT = 0x04,   //0=functional addressing, 1=physical addressing
-            ZZ1 = 0x02,
-            ZZ0 = 0x01
-        }
+    class SAEProtocols: IEnumerator, IEnumerable
+    {
+        private object HeaderClass;
+        private int ProtocolIndex;
+        private const int NumOfProtocols = 4;
+        private IEnumerator enumerator;
 
         private enum Protocols
         {
@@ -37,14 +27,41 @@ namespace SAEDiag
         J2534PhysicalDevice Device;
         public SAEProtocols(J2534PhysicalDevice Device)
         {
+            HeaderClass = new CANHeader(){
+                SourceAddress = 0x7E0,
+                TargetAddress = 0x7E8
+            };
             this.Device = Device;
         }
 
-        public Channel this[int enumeration]
+  //      public SAEMessage ConstructMessenger()
+       // {
+
+//        }
+
+
+        //**********IEnumerable IEnumerator***************
+        public IEnumerator GetEnumerator()
+        { return (IEnumerator)this; }
+
+        public bool MoveNext()
+        {
+            ProtocolIndex++;
+            return (ProtocolIndex < NumOfProtocols);
+        }
+
+        public void Reset()
+        { ProtocolIndex = 0; }
+
+        public object Current
+        { get { return this[ProtocolIndex]; } }
+        //**********IEnumerable IEnumerator***************
+
+        public Channel this[int Protocol]
         {
             get
             {
-                switch((Protocols)enumeration)
+                switch((Protocols)Protocol)
                 {
                     case Protocols.ISO15765:
                         return ISO15765(this.Device);
@@ -58,13 +75,19 @@ namespace SAEDiag
                 return null;
             }
         }
+
         public Channel ISO15765(J2534PhysicalDevice Device)
         {
-                        Channel C = Device.ConstructChannel(J2534PROTOCOL.ISO15765, J2534BAUD.ISO15765, J2534CONNECTFLAG.NONE);
+            Channel C = Device.ConstructChannel(J2534PROTOCOL.ISO15765, J2534BAUD.ISO15765, J2534CONNECTFLAG.NONE);
             C.StartMsgFilter(new MessageFilter(COMMONFILTER.STANDARDISO15765, new List<byte> { 0x00, 0x00, 0x07, 0xE0 }));
             C.StartMsgFilter(new MessageFilter(COMMONFILTER.STANDARDISO15765, new List<byte> { 0x00, 0x00, 0x07, 0xE1 }));
             C.SetConfig(J2534PARAMETER.LOOP_BACK, 0);
 
+            HeaderClass = new CANHeader()
+            {
+                SourceAddress = 0x7E0,
+                TargetAddress = 0x7E8
+            };
             return C;
         }
 
@@ -80,6 +103,16 @@ namespace SAEDiag
             });
 
             //C.StartMsgFilter(new J2534DotNet.MessageFilter(COMMONFILTER.PASS, new List<byte> { 0x04, 0xF1, 0x10 }));
+
+            HeaderClass = new J1850Header() {
+                ToolAddress = 0xF1,
+                TargetAddress = 0x10,
+                Priority = 0,
+                SingleByteHeader = false,
+                IFRNotAllowed = false,
+                PhysicalAddressing = true,
+                MessageType = 0
+            };
 
             return C;
         }

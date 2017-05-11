@@ -63,13 +63,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="J2534DataClasses.cs" />
+    <Compile Include="J2534PhysicalDevice.cs" />
+    <Compile Include="J253DLL.cs" />
     <Compile Include="Library_Selection_Form.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Library_Selection_Form.Designer.cs">
       <DependentUpon>Library_Selection_Form.cs</DependentUpon>
     </Compile>
-    <Compile Include="J2534.cs" />
+    <Compile Include="J2534Channel.cs" />
     <Compile Include="J2534Discovery.cs" />
     <Compile Include="J2534Definitions.cs" />
     <Compile Include="J2534Wrapper.cs" />

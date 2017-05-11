@@ -5,8 +5,16 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 
-namespace J2534DotNet
+namespace J2534
 {
+    internal class GetNextCarDAQResults
+    {
+        public bool Empty { get; set; }
+        public string Device { get; set; }
+        public string Version { get; set; }
+        public string Address { get; set; }
+    }
+
     [StructLayout(LayoutKind.Explicit)]
     public class J2534Message
     {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using J2534DotNet;
+using J2534;
 
 namespace SAE
 {
@@ -13,16 +13,17 @@ namespace SAE
 
         public bool Ping(Channel channel)
         {
-            SAEMessage CANSAEMessage = new SAEMessage(new List<byte>{ 0x00, 0x00, 0x07, 0xE0 }, new List<byte> { 0x00, 0x00, 0x07, 0xE8});
+            //SAEMessage CANSAEMessage = new SAEMessage(new List<byte>{ 0x00, 0x00, 0x07, 0xE0 }, new List<byte> { 0x00, 0x00, 0x07, 0xE8});
 
-            channel.SendMessage(CANSAEMessage.Send(SAEModes.REQ_DIAG_DATA, 0x00));
+           // channel.SendMessage(CANSAEMessage.Send(SAEModes.REQ_DIAG_DATA, 0x00));
             for(int i = 0;i < 5; i++)
             {
                 channel.GetMessage();
-                if (CANSAEMessage.Receive(channel.RxMessages[0].Data))
+            //    if (CANSAEMessage.Receive(channel.RxMessages[0].Data))
                     break;
             }
-            return !CANSAEMessage.Failure;
+            //return !CANSAEMessage.Failure;
+            return true;
         }
         //public string GetVIN(Channel Channel)
         //{

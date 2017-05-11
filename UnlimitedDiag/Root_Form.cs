@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
-using J2534DotNet;
+using J2534;
 using SAE;
 using System.Runtime.InteropServices;
 
@@ -19,19 +19,13 @@ namespace UnlimitedDiag
 
         private void CmdDetectVehicleClick(object sender, EventArgs e)
         {
-            IntPtr p = Marshal.AllocHGlobal(25);
-
-            byte[] b = new byte[25];
-            Marshal.StructureToPtr<byte[]>(b, p, false);
-            Marshal.FreeHGlobal(p);
-            return;
-
-
             if (!PhysicalDevices.Any())
                 return;
             if (!PhysicalDevices[0].IsConnected)
                 return;
-
+            /* SAESession DiagSession = new SAESession(PhysicalDevices[0]); //Will do ping discovery on construction
+             * Mode01Results Results = DiagSession.Mode01();
+            */
             Channel Ch = PhysicalDevices[0].ConstructChannel(J2534PROTOCOL.ISO15765, J2534BAUD.ISO15765, J2534CONNECTFLAG.NONE);
 
             if (Ch == null)
