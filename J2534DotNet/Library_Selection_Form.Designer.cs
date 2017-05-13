@@ -33,12 +33,13 @@
             this.LibBrowseButton = new System.Windows.Forms.Button();
             this.LibOpenButton = new System.Windows.Forms.Button();
             this.LibCancelButton = new System.Windows.Forms.Button();
-            this.DeviceSelectList = new System.Windows.Forms.CheckedListBox();
+            this.J2534TreeView = new System.Windows.Forms.TreeView();
             this.SuspendLayout();
             // 
             // DeviceDetails
             // 
-            this.DeviceDetails.Location = new System.Drawing.Point(351, 13);
+            this.DeviceDetails.BackColor = System.Drawing.SystemColors.Menu;
+            this.DeviceDetails.Location = new System.Drawing.Point(420, 12);
             this.DeviceDetails.Multiline = true;
             this.DeviceDetails.Name = "DeviceDetails";
             this.DeviceDetails.Size = new System.Drawing.Size(472, 183);
@@ -51,7 +52,7 @@
             // 
             // LibBrowseButton
             // 
-            this.LibBrowseButton.Location = new System.Drawing.Point(270, 173);
+            this.LibBrowseButton.Location = new System.Drawing.Point(156, 353);
             this.LibBrowseButton.Name = "LibBrowseButton";
             this.LibBrowseButton.Size = new System.Drawing.Size(75, 23);
             this.LibBrowseButton.TabIndex = 2;
@@ -62,7 +63,7 @@
             // LibOpenButton
             // 
             this.LibOpenButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.LibOpenButton.Location = new System.Drawing.Point(13, 173);
+            this.LibOpenButton.Location = new System.Drawing.Point(817, 374);
             this.LibOpenButton.Name = "LibOpenButton";
             this.LibOpenButton.Size = new System.Drawing.Size(75, 23);
             this.LibOpenButton.TabIndex = 3;
@@ -73,7 +74,7 @@
             // LibCancelButton
             // 
             this.LibCancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.LibCancelButton.Location = new System.Drawing.Point(13, 204);
+            this.LibCancelButton.Location = new System.Drawing.Point(736, 374);
             this.LibCancelButton.Name = "LibCancelButton";
             this.LibCancelButton.Size = new System.Drawing.Size(75, 23);
             this.LibCancelButton.TabIndex = 4;
@@ -81,24 +82,21 @@
             this.LibCancelButton.UseVisualStyleBackColor = true;
             this.LibCancelButton.Click += new System.EventHandler(this.LibCancelButton_Click);
             // 
-            // DeviceSelectList
+            // J2534TreeView
             // 
-            this.DeviceSelectList.CheckOnClick = true;
-            this.DeviceSelectList.FormattingEnabled = true;
-            this.DeviceSelectList.Location = new System.Drawing.Point(13, 13);
-            this.DeviceSelectList.Name = "DeviceSelectList";
-            this.DeviceSelectList.Size = new System.Drawing.Size(332, 154);
-            this.DeviceSelectList.TabIndex = 6;
-            this.DeviceSelectList.SelectedIndexChanged += new System.EventHandler(this.UpdateDeviceDetails);
+            this.J2534TreeView.Location = new System.Drawing.Point(12, 12);
+            this.J2534TreeView.Name = "J2534TreeView";
+            this.J2534TreeView.Size = new System.Drawing.Size(305, 298);
+            this.J2534TreeView.TabIndex = 8;
             // 
-            // Device_Selection
+            // LibrarySelectionForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.LibCancelButton;
-            this.ClientSize = new System.Drawing.Size(824, 239);
+            this.ClientSize = new System.Drawing.Size(904, 410);
             this.ControlBox = false;
-            this.Controls.Add(this.DeviceSelectList);
+            this.Controls.Add(this.J2534TreeView);
             this.Controls.Add(this.LibCancelButton);
             this.Controls.Add(this.LibOpenButton);
             this.Controls.Add(this.LibBrowseButton);
@@ -106,7 +104,7 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Fixed3D;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.Name = "Device_Selection";
+            this.Name = "LibrarySelectionForm";
             this.ShowIcon = false;
             this.Text = "Select 2534 Device(s) to Open";
             this.TopMost = true;
@@ -121,6 +119,6 @@
         private System.Windows.Forms.Button LibBrowseButton;
         private System.Windows.Forms.Button LibOpenButton;
         private System.Windows.Forms.Button LibCancelButton;
-        private System.Windows.Forms.CheckedListBox DeviceSelectList;
+        private System.Windows.Forms.TreeView J2534TreeView;
     }
 }

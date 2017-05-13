@@ -5,10 +5,9 @@ using System.Linq;
 namespace J2534
 {
 
-
-        /// <summary>
-        /// enum used to create predefined filters in the MessageFilter constructor.
-        /// </summary>
+    /// <summary>
+    /// enum used to create predefined filters in the MessageFilter constructor.
+    /// </summary>
     public enum COMMONFILTER
     {
         NONE,
@@ -181,7 +180,8 @@ namespace J2534
         ERR_NO_FLOW_CONTROL = 0x17,
         ERR_NOT_UNIQUE = 0x18,
         ERR_INVALID_BAUDRATE = 0x19,
-        ERR_INVALID_DEVICE_ID = 0x1A
+        ERR_INVALID_DEVICE_ID = 0x1A,
+        FUNCTION_NOT_ASSIGNED = 0x7EADBEEF  //non-standard flag used by the wrapper to indicate no function assigned
     }
 
     public enum J2534PARAMETER  //Parameter selection values used in PassThruIoCtl->Set/Get Config
@@ -240,4 +240,48 @@ namespace J2534
         ADC_READINGS_PER_SECOND = 0x10000,  //Drewtech
         ADC_READINGS_PER_SAMPLE = 0x20000  //Drewtech
     }
+    [Flags]
+    internal enum SAE_API
+    {
+        //2.02 calls
+        NONE = 0x00000000,
+        CONNECT = 0x00000001,
+        DISCONNECT = 0x00000002,
+        READMSGS = 0x00000004,
+        WRITEMSGS = 0x00000008,
+        STARTPERIODICMSG = 0x00000010,
+        STOPPERIODICMSG = 0x00000020,
+        STARTMSGFILTER = 0x00000040,
+        STOPMSGFILTER = 0x00000080,
+        SETPROGRAMMINGVOLTAGE = 0x00000100,
+        READVERSION = 0x00000200,
+        GETLASTERROR = 0x00000400,
+        IOCTL = 0x00000800,
+        //4.04 calls
+        OPEN = 0x00001000,
+        CLOSE = 0x00002000,
+        //5.00 calls
+        SCANFORDEVICES = 0x00004000,
+        GETNEXTDEVICE = 0x00008000,
+        LOGICALCONNECT = 0x00010000,
+        LOGICALDISCONNECT = 0x00020000,
+        SELECT = 0x00040000,
+        QUEUEMESSAGES = 0x00080000,
+        //Signature matches
+        V202_SIGNATURE = 0x0FFF,
+        V404_SIGNATURE = 0x3FFF,
+        V500_SIGNATURE = 0xFFFFF
+    }
+    public enum DREWTECH_API
+    {
+        NONE = 0x00,
+        GETNEXTCARDAQ = 0x01,
+        GETPOINTER = 0x02,
+        READPCSETUP = 0x04,
+        WRITEIPSETUP = 0x08,
+        READIPSETUP = 0x10,
+        RECOVERFIRMWARE = 0x20,
+        LOADFIRMWARE = 0x40
+    }
+
 }

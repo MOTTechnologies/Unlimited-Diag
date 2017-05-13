@@ -8,38 +8,80 @@ namespace J2534
         public J2534ERR Status;
         //public object Status;
         internal int DeviceID;
-        public bool IsConnected;
         internal J2534DLL Library;
         public string FirmwareVersion;
         public string LibraryVersion;
         public string APIVersion;
 
+        public string DeviceName;
+        public string DrewtechVersion;
+        public string DrewtechAddress;
+
         internal J2534PhysicalDevice(J2534DLL Library)
         {
-            //Status = _Status;
             this.Library = Library;
             ConnectToDevice("");
         }
 
-        //Devicenames that work are "CarDAQ-Plus1331" and "192.168.43.101"
         internal J2534PhysicalDevice(J2534DLL Library, string DeviceName)
         {
             this.Library = Library;
+            this.DeviceName = DeviceName;
+            ConnectToDevice(this.DeviceName);
+        }
+
+        internal J2534PhysicalDevice(J2534DLL Library, GetNextCarDAQResults CarDAQ)
+        {
+            this.Library = Library;
+            this.DeviceName = CarDAQ.Name;
+            this.DrewtechVersion = CarDAQ.Version;
+            this.DrewtechAddress = CarDAQ.Address;
+
             ConnectToDevice(DeviceName);
         }
+
+        public bool IsConnected
+        {
+            get
+            {   //This is a hack to make a 2nd device opened with v2.02 show as "not connected"
+                if (string.IsNullOrEmpty(DeviceName))
+                    return false;
+                //I use GetVersion as a ping to the target device
+                return GetVersion();
+            }
+        }
+
         public bool ConnectToDevice(string Device)
         {
-            IntPtr DeviceNamePtr = IntPtr.Zero;
-            if (Device.Length > 0)
-                DeviceNamePtr = Marshal.StringToHGlobalAnsi(Device);
-            Status = (J2534ERR)Library.API.Open(DeviceNamePtr, ref DeviceID);
+            //Do not allow more than one device connection when using v2.02 API
+            if (Library.API_Signature.SAE_API == SAE_API.V202_SIGNATURE && Library.NumOfOpenDevices > 0)
+                return true;
+            //DeviceID is set to zero as a default in the event of a v2.02 connect event
+            DeviceID = 0;
+            IntPtr pDeviceName = IntPtr.Zero;
+            if (!string.IsNullOrEmpty(Device))
+                pDeviceName = Marshal.StringToHGlobalAnsi(Device);
 
-            Marshal.FreeHGlobal(DeviceNamePtr);
+            Status = (J2534ERR)Library.API.Open(pDeviceName, ref DeviceID);
+
+            string TestName = Marshal.PtrToStringAnsi(pDeviceName);
+
+            Marshal.FreeHGlobal(pDeviceName);
 
             if (Status == J2534ERR.STATUS_NOERROR)
             {
-                IsConnected = true;
                 GetVersion();
+                Library.NumOfOpenDevices++;
+                if (string.IsNullOrEmpty(DeviceName))
+                    DeviceName = string.Format("Device {0}", Library.NumOfOpenDevices);
+                return false;
+            }
+            else if (Library.API_Signature.SAE_API == SAE_API.V202_SIGNATURE &&
+                     IsConnected)
+            {
+                Library.NumOfOpenDevices++;
+                if (string.IsNullOrEmpty(DeviceName))
+                    DeviceName = string.Format("Device {0}", Library.NumOfOpenDevices);
                 return false;
             }
             return true;
@@ -48,9 +90,10 @@ namespace J2534
         public bool DisconnectDevice()
         {
             Status = (J2534ERR)Library.API.Close(DeviceID);
-            if (Status == J2534ERR.STATUS_NOERROR)
+            if (Status == J2534ERR.STATUS_NOERROR ||
+                (Library.API_Signature.SAE_API == SAE_API.V202_SIGNATURE && Library.NumOfOpenDevices > 0))
             {
-                IsConnected = false;
+                Library.NumOfOpenDevices--;
                 return false;
             }
             return true;

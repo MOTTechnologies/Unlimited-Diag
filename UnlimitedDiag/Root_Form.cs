@@ -14,7 +14,12 @@ namespace UnlimitedDiag
         public Root_Form()
         {
             InitializeComponent();
-            PhysicalDevices = J2534Discovery.OpenEverything();
+            J2534Discovery.Test();
+
+            J2534.LibrarySelectionForm a = new J2534.LibrarySelectionForm();
+            a.ShowDialog();
+
+            //PhysicalDevices = J2534Discovery.OpenEverything();
         }
 
         private void CmdDetectVehicleClick(object sender, EventArgs e)
@@ -39,7 +44,6 @@ namespace UnlimitedDiag
             if (Diagnostic.Ping(Ch))
                 MessageBox.Show("We have a successful ping!");
             Ch.Disconnect();
-
         }
 
         private void CmdReadVoltageClick(object sender, EventArgs e)

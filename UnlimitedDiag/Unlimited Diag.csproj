@@ -77,9 +77,9 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\J2534DotNet\J2534DotNet.csproj">
+    <ProjectReference Include="..\J2534DotNet\J2534.csproj">
       <Project>{D99E0DE7-2F06-41E3-B33E-687E1B425A7F}</Project>
-      <Name>J2534DotNet</Name>
+      <Name>J2534</Name>
     </ProjectReference>
     <ProjectReference Include="..\SAEDiag\SAEDiagnostics.csproj">
       <Project>{dba67a7e-b4c3-444e-a67a-8d9ea1037343}</Project>
