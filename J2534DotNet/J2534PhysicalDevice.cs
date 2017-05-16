@@ -5,21 +5,32 @@ namespace J2534
 {
     public class J2534PhysicalDevice
     {
-        public J2534ERR Status;
-        //public object Status;
-        internal int DeviceID;
+        internal IntPtr DeviceID;
         internal J2534DLL Library;
         public string FirmwareVersion;
         public string LibraryVersion;
         public string APIVersion;
-
         public string DeviceName;
         public string DrewtechVersion;
         public string DrewtechAddress;
+        private bool ValidDevice;   //Flag used to determine if this device failed initial connection
+
+        public J2534ERR Status
+        {
+            get
+            {
+                return Library.Status;
+            }
+            set
+            {
+                Library.Status = value;
+            }
+        }
 
         internal J2534PhysicalDevice(J2534DLL Library)
         {
             this.Library = Library;
+            DeviceID = Marshal.AllocHGlobal(4);
             ConnectToDevice("");
         }
 
@@ -27,6 +38,7 @@ namespace J2534
         {
             this.Library = Library;
             this.DeviceName = DeviceName;
+            DeviceID = Marshal.AllocHGlobal(4);
             ConnectToDevice(this.DeviceName);
         }
 
@@ -36,6 +48,7 @@ namespace J2534
             this.DeviceName = CarDAQ.Name;
             this.DrewtechVersion = CarDAQ.Version;
             this.DrewtechAddress = CarDAQ.Address;
+            DeviceID = Marshal.AllocHGlobal(4);
 
             ConnectToDevice(DeviceName);
         }
@@ -43,68 +56,53 @@ namespace J2534
         public bool IsConnected
         {
             get
-            {   //This is a hack to make a 2nd device opened with v2.02 show as "not connected"
-                if (string.IsNullOrEmpty(DeviceName))
+            {   
+                if(!ValidDevice)
                     return false;
-                //I use GetVersion as a ping to the target device
-                return GetVersion();
+                //GetVersion is used as a 'ping'
+                return !GetVersion();
             }
         }
 
         public bool ConnectToDevice(string Device)
         {
-            //Do not allow more than one device connection when using v2.02 API
-            if (Library.API_Signature.SAE_API == SAE_API.V202_SIGNATURE && Library.NumOfOpenDevices > 0)
-                return true;
-            //DeviceID is set to zero as a default in the event of a v2.02 connect event
-            DeviceID = 0;
+
             IntPtr pDeviceName = IntPtr.Zero;
             if (!string.IsNullOrEmpty(Device))
                 pDeviceName = Marshal.StringToHGlobalAnsi(Device);
+            else
+                DeviceName = string.Format("Device {0}", J2534Discovery.PhysicalDevices.FindAll(Listed => Listed.Library == this.Library).Count + 1);
 
-            Status = (J2534ERR)Library.API.Open(pDeviceName, ref DeviceID);
-
-            string TestName = Marshal.PtrToStringAnsi(pDeviceName);
+            Status = (J2534ERR)Library.API.Open(pDeviceName, DeviceID);
 
             Marshal.FreeHGlobal(pDeviceName);
 
-            if (Status == J2534ERR.STATUS_NOERROR)
+            if (Status == J2534ERR.STATUS_NOERROR || (Library.API_Signature.SAE_API == SAE_API.V202_SIGNATURE &&
+                                                      J2534Discovery.PhysicalDevices.FindAll(Listed => Listed.Library == this.Library).Count == 0 &&
+                                                      IsConnected))
             {
+                ValidDevice = true;
                 GetVersion();
-                Library.NumOfOpenDevices++;
-                if (string.IsNullOrEmpty(DeviceName))
-                    DeviceName = string.Format("Device {0}", Library.NumOfOpenDevices);
-                return false;
+                return CONST.SUCCESS;
             }
-            else if (Library.API_Signature.SAE_API == SAE_API.V202_SIGNATURE &&
-                     IsConnected)
-            {
-                Library.NumOfOpenDevices++;
-                if (string.IsNullOrEmpty(DeviceName))
-                    DeviceName = string.Format("Device {0}", Library.NumOfOpenDevices);
-                return false;
-            }
-            return true;
+            return CONST.FAILURE;
         }
 
         public bool DisconnectDevice()
         {
             Status = (J2534ERR)Library.API.Close(DeviceID);
-            if (Status == J2534ERR.STATUS_NOERROR ||
-                (Library.API_Signature.SAE_API == SAE_API.V202_SIGNATURE && Library.NumOfOpenDevices > 0))
-            {
-                Library.NumOfOpenDevices--;
-                return false;
-            }
-            return true;
+            if (Status == J2534ERR.STATUS_NOERROR || Library.API_Signature.SAE_API == SAE_API.V202_SIGNATURE)
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         public bool SetProgrammingVoltage(J2534PIN PinNumber, int Voltage)
         {
+
             Status = (J2534ERR)Library.API.SetProgrammingVoltage(DeviceID, (int)PinNumber, Voltage);
             if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         private bool GetVersion()
@@ -125,8 +123,8 @@ namespace J2534
             Marshal.FreeHGlobal(pApiVersion);
 
             if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         public string GetLastError()
@@ -144,6 +142,7 @@ namespace J2534
 
         public int MeasureBatteryVoltage()
         {
+            //Needs to have a handler for v2.02
             int voltage = 0;
             IntPtr output = Marshal.AllocHGlobal(4);
 

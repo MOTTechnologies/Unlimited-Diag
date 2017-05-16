@@ -4,7 +4,12 @@ using System.Collections.Generic;
 using System.Linq;
 namespace J2534
 {
-
+    internal static class CONST
+    {
+        internal const bool SUCCESS = false;
+        internal const bool FAILURE = true;
+        internal const int J2534MESSAGESIZE = 4152;
+    }
     /// <summary>
     /// enum used to create predefined filters in the MessageFilter constructor.
     /// </summary>

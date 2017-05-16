@@ -22,7 +22,7 @@ namespace J2534
 
         //**************Prototypes for v2.02 functions that can get wrapped in v4.04 style delegates***************
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate J2534ERR PassThruConnectv202(int ProtocolID, int ConnectFlags, ref int ChannelID);
+        internal delegate J2534ERR PassThruConnectv202(int ProtocolID, int ConnectFlags, IntPtr ChannelID);
         internal PassThruConnectv202 Connectv202;
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
@@ -35,76 +35,76 @@ namespace J2534
         //********************************************************************************************************
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate J2534ERR PassThruConnect(int DeviceID, int ProtocolID, int ConnectFlags, int Baud, ref int ChannelID);
-        internal PassThruConnect Connect = delegate (int DeviceID, int ProtocolID, int ConnectFlags, int Baud, ref int ChannelID) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
+        internal delegate J2534ERR PassThruConnect(IntPtr DeviceID, int ProtocolID, int ConnectFlags, int Baud, IntPtr ChannelID);
+        internal PassThruConnect Connect = delegate (IntPtr DeviceID, int ProtocolID, int ConnectFlags, int Baud, IntPtr ChannelID) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate J2534ERR PassThruDisconnect(int channelId);
-        internal PassThruDisconnect Disconnect = delegate (int channelId) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
+        internal delegate J2534ERR PassThruDisconnect(IntPtr channelId);
+        internal PassThruDisconnect Disconnect = delegate (IntPtr channelId) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate J2534ERR PassThruReadMsgs(int ChannelID, IntPtr pUMsgArray, ref int NumMsgs, int Timeout);
-        internal PassThruReadMsgs ReadMsgs = delegate (int ChannelID, IntPtr pMsgArray, ref int NumMsgs, int Timeout) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
+        internal delegate J2534ERR PassThruReadMsgs(IntPtr ChannelID, IntPtr pUMsgArray, IntPtr NumMsgs, int Timeout);
+        internal PassThruReadMsgs ReadMsgs = delegate (IntPtr ChannelID, IntPtr pMsgArray, IntPtr NumMsgs, int Timeout) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate J2534ERR PassThruWriteMsgs(int ChannelID, IntPtr pUMsgArray, ref int NumMsgs, int Timeout);
-        internal PassThruWriteMsgs WriteMsgs = delegate (int ChannelID, IntPtr pMsgArray, ref int NumMsgs, int Timeout) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
+        internal delegate J2534ERR PassThruWriteMsgs(IntPtr ChannelID, IntPtr pUMsgArray, IntPtr NumMsgs, int Timeout);
+        internal PassThruWriteMsgs WriteMsgs = delegate (IntPtr ChannelID, IntPtr pMsgArray, IntPtr NumMsgs, int Timeout) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate J2534ERR PassThruStartPeriodicMsg(int ChannelID, IntPtr Msg, ref int MsgID, int Interval);
-        internal PassThruStartPeriodicMsg StartPeriodicMsg = delegate (int ChannelID, IntPtr pMsg, ref int MsgID, int Interval) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
+        internal delegate J2534ERR PassThruStartPeriodicMsg(IntPtr ChannelID, IntPtr Msg, IntPtr MsgID, int Interval);
+        internal PassThruStartPeriodicMsg StartPeriodicMsg = delegate (IntPtr ChannelID, IntPtr pMsg, IntPtr MsgID, int Interval) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate J2534ERR PassThruStopPeriodicMsg(int ChannelID, int MsgID);
-        internal PassThruStopPeriodicMsg StopPeriodicMsg = delegate (int ChannelID, int MsgID) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
+        internal delegate J2534ERR PassThruStopPeriodicMsg(IntPtr ChannelID, int MsgID);
+        internal PassThruStopPeriodicMsg StopPeriodicMsg = delegate (IntPtr ChannelID, int MsgID) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         internal delegate J2534ERR PassThruStartMsgFilter
         (
-            int ChannelID,
+            IntPtr ChannelID,
             int FilterType,
             IntPtr pMaskMsg,
             IntPtr PatternMsg,
             IntPtr pFlowControlMsg,
-            ref int FilterID
+            IntPtr FilterID
         );
         internal PassThruStartMsgFilter StartMsgFilter = delegate (
-            int ChannelID,
+            IntPtr ChannelID,
             int FilterType,
             IntPtr pMaskMsg,
             IntPtr pPatternMsg,
             IntPtr pFlowControlMsg,
-            ref int FilterID
+            IntPtr FilterID
         ) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate J2534ERR PassThruStopMsgFilter(int ChannelID, int FilterID);
-        internal PassThruStopMsgFilter StopMsgFilter = delegate (int ChannelID, int FilterID) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
+        internal delegate J2534ERR PassThruStopMsgFilter(IntPtr ChannelID, int FilterID);
+        internal PassThruStopMsgFilter StopMsgFilter = delegate (IntPtr ChannelID, int FilterID) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate J2534ERR PassThruSetProgrammingVoltage(int DeviceID, int Pin, int Voltage);
-        internal PassThruSetProgrammingVoltage SetProgrammingVoltage = delegate (int DeviceID, int Pin, int Voltage) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
+        internal delegate J2534ERR PassThruSetProgrammingVoltage(IntPtr DeviceID, int Pin, int Voltage);
+        internal PassThruSetProgrammingVoltage SetProgrammingVoltage = delegate (IntPtr DeviceID, int Pin, int Voltage) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate J2534ERR PassThruReadVersion(int DeviceID, IntPtr pFirmwareVer, IntPtr pDllVer, IntPtr pAPIVer);
-        internal PassThruReadVersion ReadVersion = delegate (int DeviceID, IntPtr pFirmwareVer, IntPtr pDllVer, IntPtr pAPIVer) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
+        internal delegate J2534ERR PassThruReadVersion(IntPtr DeviceID, IntPtr pFirmwareVer, IntPtr pDllVer, IntPtr pAPIVer);
+        internal PassThruReadVersion ReadVersion = delegate (IntPtr DeviceID, IntPtr pFirmwareVer, IntPtr pDllVer, IntPtr pAPIVer) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         internal delegate J2534ERR PassThruGetLastError(IntPtr pErr);
         internal PassThruGetLastError GetLastError = delegate (IntPtr pErr) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate J2534ERR PassThruIoctl(int ChannelID, int IOCtlID, IntPtr Input, IntPtr Output);
-        internal PassThruIoctl IOCtl = delegate(int ChannelID, int IOCtlID, IntPtr Input, IntPtr Output) { return J2534ERR.FUNCTION_NOT_ASSIGNED; } ;
+        internal delegate J2534ERR PassThruIoctl(IntPtr HandleID, int IOCtlID, IntPtr Input, IntPtr Output);
+        internal PassThruIoctl IOCtl = delegate(IntPtr HandleID, int IOCtlID, IntPtr Input, IntPtr Output) { return J2534ERR.FUNCTION_NOT_ASSIGNED; } ;
 
         //**********v 4.04 calls****************
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate J2534ERR PassThruOpen(IntPtr pDeviceName, ref int DeviceID);
-        internal PassThruOpen Open = delegate (IntPtr pDeviceName, ref int DeviceID) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
+        internal delegate J2534ERR PassThruOpen(IntPtr pDeviceName, IntPtr DeviceID);
+        internal PassThruOpen Open = delegate (IntPtr pDeviceName, IntPtr DeviceID) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        internal delegate J2534ERR PassThruClose(int DeviceID);
-        internal PassThruClose Close = delegate (int DeviceID) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
+        internal delegate J2534ERR PassThruClose(IntPtr DeviceID);
+        internal PassThruClose Close = delegate (IntPtr DeviceID) { return J2534ERR.FUNCTION_NOT_ASSIGNED; };
 
 
         //********************J2534 v5 and undocumented Drewtech calls*********************
@@ -171,10 +171,10 @@ namespace J2534
                 {
                     //Otherwise, use the v202 prototype and wrap it with the v404 call
                     Connectv202 = Marshal.GetDelegateForFunctionPointer<PassThruConnectv202>(pFunction);
-                    Connect = delegate (int DeviceID, int ProtocolID, int ConnectFlags, int Baud, ref int ChannelID)
+                    Connect = delegate (IntPtr DeviceID, int ProtocolID, int ConnectFlags, int Baud, IntPtr ChannelID)
                     {
-                        if (DeviceID == 0)
-                            return Connectv202(ProtocolID, ConnectFlags, ref ChannelID);
+                        if (Marshal.ReadInt32(DeviceID) == 0)
+                            return Connectv202(ProtocolID, ConnectFlags, ChannelID);
                         else
                             return J2534ERR.ERR_INVALID_DEVICE_ID;
                     };
@@ -242,9 +242,9 @@ namespace J2534
                 {
                     //Otherwise, use the v202 prototype and wrap it with the v404 call
                     SetProgrammingVoltagev202 = Marshal.GetDelegateForFunctionPointer<PassThruSetProgrammingVoltagev202>(pFunction);
-                    SetProgrammingVoltage = delegate (int DeviceID, int Pin, int Voltage)
+                    SetProgrammingVoltage = delegate (IntPtr DeviceID, int Pin, int Voltage)
                     {
-                        if (DeviceID == 0)
+                        if (Marshal.ReadInt32(DeviceID) == 0)   //Is this necessary?
                             return SetProgrammingVoltagev202(Pin, Voltage);
                         else
                             return J2534ERR.ERR_INVALID_DEVICE_ID;
@@ -264,9 +264,9 @@ namespace J2534
                 {
                     //Otherwise, use the v202 prototype and wrap it with the v404 call
                     ReadVersionv202 = Marshal.GetDelegateForFunctionPointer<PassThruReadVersionv202>(pFunction);
-                    ReadVersion = delegate (int DeviceID, IntPtr pFirmwareVer, IntPtr pDllVer, IntPtr pAPIVer)
+                    ReadVersion = delegate (IntPtr DeviceID, IntPtr pFirmwareVer, IntPtr pDllVer, IntPtr pAPIVer)
                     {
-                        if (DeviceID == 0)
+                        if (Marshal.ReadInt32(DeviceID) == 0)
                             return ReadVersionv202(pFirmwareVer, pDllVer, pAPIVer);
                         else
                             return J2534ERR.ERR_INVALID_DEVICE_ID;

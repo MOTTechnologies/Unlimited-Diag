@@ -79,8 +79,8 @@ namespace SAE
         public Channel ISO15765(J2534PhysicalDevice Device)
         {
             Channel C = Device.ConstructChannel(J2534PROTOCOL.ISO15765, J2534BAUD.ISO15765, J2534CONNECTFLAG.NONE);
-            C.StartMsgFilter(new MessageFilter(COMMONFILTER.STANDARDISO15765, new List<byte> { 0x00, 0x00, 0x07, 0xE0 }));
-            C.StartMsgFilter(new MessageFilter(COMMONFILTER.STANDARDISO15765, new List<byte> { 0x00, 0x00, 0x07, 0xE1 }));
+            C.StartMsgFilter(new MessageFilter(COMMONFILTER.STANDARDISO15765, new byte[] { 0x00, 0x00, 0x07, 0xE0 }));
+            C.StartMsgFilter(new MessageFilter(COMMONFILTER.STANDARDISO15765, new byte[] { 0x00, 0x00, 0x07, 0xE1 }));
             C.SetConfig(J2534PARAMETER.LOOP_BACK, 0);
 
             HeaderClass = new CANHeader()
@@ -97,8 +97,8 @@ namespace SAE
             C.SetConfig(J2534PARAMETER.NODE_ADDRESS, 0xF1);
             C.StartMsgFilter(new MessageFilter()
             {
-                Mask = new List<byte>() { 0x1C, 0xFF, 0xFF },
-                Pattern = new List<byte>() { 0x04, 0xF1, 0x10 },
+                Mask = new byte[] { 0x1C, 0xFF, 0xFF },
+                Pattern = new byte[] { 0x04, 0xF1, 0x10 },
                 FilterType = J2534FILTER.PASS_FILTER
             });
 

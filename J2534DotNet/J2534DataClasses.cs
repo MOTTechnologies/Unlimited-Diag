@@ -26,52 +26,290 @@ namespace J2534
         public string Address { get; set; }
     }
 
-    [StructLayout(LayoutKind.Explicit)]
     public class J2534Message
     {
-        [FieldOffset(0), MarshalAs(UnmanagedType.U4)]
         public J2534PROTOCOL ProtocolID;
-        [FieldOffset(4), MarshalAs(UnmanagedType.U4)]
         public J2534RXFLAG RxStatus;
-        [FieldOffset(8), MarshalAs(UnmanagedType.U4)]
         public J2534TXFLAG TxFlags;
-        [FieldOffset(12), MarshalAs(UnmanagedType.U4)]
         public uint Timestamp;
-        [FieldOffset(16), MarshalAs(UnmanagedType.U4)]
-        private int Datasize;
-        [FieldOffset(20), MarshalAs(UnmanagedType.U4)]
         public uint ExtraDataIndex;
-        [FieldOffset(24), MarshalAs(UnmanagedType.ByValArray, ArraySubType = UnmanagedType.U1, SizeConst = 4128)]
-        private byte[] data;
+        public byte[] Data;
 
         public J2534Message()
         {
-            data = new byte[4128];
+
         }
 
-        public J2534Message(J2534PROTOCOL ProtocolID, J2534TXFLAG TxFlags, List<byte> Data)
+        public J2534Message(J2534PROTOCOL ProtocolID, J2534TXFLAG TxFlags, byte[] Data)
         {
             this.ProtocolID = ProtocolID;
             this.TxFlags = TxFlags;
-            data = new byte[4128];
             this.Data = Data;
         }
+    }
 
-        public List<byte> Data
+    public class J2534HeapMessageArray:IDisposable
+    {
+        private int array_max_length;
+        private IntPtr pMessages;
+        private IntPtr pNumMsgs;
+        private bool disposed;
+
+        public J2534HeapMessageArray(int Length)
+        {
+            array_max_length = Length;
+            pNumMsgs = Marshal.AllocHGlobal(4);
+            pMessages = Marshal.AllocHGlobal(CONST.J2534MESSAGESIZE * Length);
+        }
+
+        public int Length
         {
             get
             {
-                return data.Take(Datasize).ToList();
+                return Marshal.ReadInt32(pNumMsgs);
             }
             set
             {
-                if (value.Count > 4128)
-                    throw new ArgumentException("Message data length greater than 4128");
-                Array.Copy(value.ToArray(), data, value.Count);
-                Datasize = value.Count;
+                if(value > array_max_length)
+                {
+                    //Do something about it
+                }
+                else
+                    Marshal.WriteInt32(pNumMsgs, value);
             }
         }
+
+        public J2534Message this[int index]
+        {
+            get
+            {
+                if(index > Marshal.ReadInt32(pNumMsgs))
+                {
+                    //do something about index out of bounds
+                }
+                IntPtr pData = (IntPtr)(index * CONST.J2534MESSAGESIZE + (int)pMessages + 24);
+                return new J2534Message()
+                {
+                    ProtocolID = (J2534PROTOCOL)Marshal.ReadInt32(pData, -24),
+                    RxStatus = (J2534RXFLAG)Marshal.ReadInt32(pData, -20),
+                    TxFlags = (J2534TXFLAG)Marshal.ReadInt32(pData, -16),
+                    Timestamp = (uint)Marshal.ReadInt32(pData, -12),
+                    ExtraDataIndex = (uint)Marshal.ReadInt32(pData, -4),
+                    Data = MarshalDataArray(pData),
+                };
+            }
+            set
+            {
+                if (index > Marshal.ReadInt32(pNumMsgs))
+                {
+                    //do something about index out of bounds
+                }
+                IntPtr pData = (IntPtr)(index * CONST.J2534MESSAGESIZE + (int)pMessages + 24);
+                Marshal.WriteInt32(pData, -24, (int)value.ProtocolID);
+                Marshal.WriteInt32(pData, -20, (int)value.RxStatus);
+                Marshal.WriteInt32(pData, -16, (int)value.TxFlags);
+                Marshal.WriteInt32(pData, -12, (int)value.Timestamp);
+                Marshal.WriteInt32(pData, -8, value.Data.Length);
+                Marshal.WriteInt32(pData, -4, (int)value.ExtraDataIndex);
+                Marshal.Copy(value.Data, 0, pData, value.Data.Length);
+            }
+        }
+
+        public IntPtr NumMsgs
+        {
+            get
+            {
+                return pNumMsgs;
+            }
+        }
+
+        public static implicit operator IntPtr(J2534HeapMessageArray HeapMessageArray)
+        {
+            return HeapMessageArray.pMessages;
+        }
+
+        private byte[] MarshalDataArray(IntPtr pData)
+        {
+            int Length = Marshal.ReadInt32(pData, -8);
+            byte[] data = new byte[Length];
+            Marshal.Copy(pData, data, 0, Length);
+            return data;
+        }
+        // Public implementation of Dispose pattern callable by consumers.
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        // Protected implementation of Dispose pattern.
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+                return;
+
+            if (disposing)
+            {
+                // Free any other managed objects here.
+                //
+            }
+
+            // Free any unmanaged objects here.
+            //
+            Marshal.FreeHGlobal(pMessages);
+            Marshal.FreeHGlobal(pNumMsgs);
+            disposed = true;
+        }
     }
+
+    //Class for creating a single message on the heap.  Used for Periodic messages, filters, etc.
+    public class J2534HeapMessage:IDisposable
+    {
+        private IntPtr pMessage;
+        private bool disposed;
+        public J2534HeapMessage()
+        {
+            pMessage = Marshal.AllocHGlobal(CONST.J2534MESSAGESIZE);
+        }
+
+        public J2534HeapMessage(J2534Message Message)
+        {
+            pMessage = Marshal.AllocHGlobal(CONST.J2534MESSAGESIZE);
+            this.Message = Message;
+        }
+
+        public IntPtr Ptr
+        {
+            get
+            {
+                return pMessage;
+            }
+        }
+
+        public J2534Message Message
+        {
+            get
+            {
+                IntPtr pData = (IntPtr)(24 + (int)pMessage);
+                return new J2534Message()
+                {
+                    ProtocolID = (J2534PROTOCOL)Marshal.ReadInt32(pData, -24),
+                    RxStatus = (J2534RXFLAG)Marshal.ReadInt32(pData, -20),
+                    TxFlags = (J2534TXFLAG)Marshal.ReadInt32(pData, -16),
+                    Timestamp = (uint)Marshal.ReadInt32(pData, -12),
+                    ExtraDataIndex = (uint)Marshal.ReadInt32(pData, -4),
+                    Data = MarshalDataArray(pData),
+                };
+            }
+            set
+            {
+                IntPtr pData = (IntPtr)(24 + (int)pMessage);
+                Marshal.WriteInt32(pData, -24, (int)value.ProtocolID);
+                Marshal.WriteInt32(pData, -20, (int)value.RxStatus);
+                Marshal.WriteInt32(pData, -16, (int)value.TxFlags);
+                Marshal.WriteInt32(pData, -12, (int)value.Timestamp);
+                Marshal.WriteInt32(pData, -8, value.Data.Length);
+                Marshal.WriteInt32(pData, -4, (int)value.ExtraDataIndex);
+                Marshal.Copy(value.Data, 0, pData, value.Data.Length);
+            }
+        }
+
+        public static implicit operator IntPtr(J2534HeapMessage HeapMessage)
+        {
+            return HeapMessage.pMessage;
+        }
+
+        private byte[] MarshalDataArray(IntPtr pData)
+        {
+            int Length = Marshal.ReadInt32(pData, -8);
+            byte[] data = new byte[Length];
+            Marshal.Copy(pData, data, 0, Length);
+            return data;
+        }
+
+        // Public implementation of Dispose pattern callable by consumers.
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        // Protected implementation of Dispose pattern.
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+                return;
+
+            if (disposing)
+            {
+                // Free any other managed objects here.
+                //
+            }
+
+            // Free any unmanaged objects here.
+            //
+            Marshal.FreeHGlobal(pMessage);
+            disposed = true;
+        }
+
+    }
+
+    public class J2534HeapInt:IDisposable
+    {
+        private bool disposed;
+        private IntPtr pInt;
+        public J2534HeapInt()
+        {
+            pInt = Marshal.AllocHGlobal(4);
+        }
+
+        public J2534HeapInt(int i)
+        {
+            pInt = Marshal.AllocHGlobal(4);
+            Marshal.WriteInt32(pInt, i);
+        }
+
+        public static implicit operator IntPtr(J2534HeapInt HeapInt)
+        {
+            return HeapInt.pInt;
+        }
+
+        public static implicit operator int(J2534HeapInt HeapInt)
+        {
+            return Marshal.ReadInt32(HeapInt.pInt);
+        }
+
+        public static implicit operator J2534HeapInt(int i)
+        {
+            return new J2534HeapInt(i);
+        }
+
+        // Public implementation of Dispose pattern callable by consumers.
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        // Protected implementation of Dispose pattern.
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+                return;
+
+            if (disposing)
+            {
+                // Free any other managed objects here.
+                //
+            }
+
+            // Free any unmanaged objects here.
+            //
+            Marshal.FreeHGlobal(pInt);
+            disposed = true;
+        }
+    }
+
 
     public class PeriodicMsg
     {
@@ -88,25 +326,19 @@ namespace J2534
     public class MessageFilter
     {
         public J2534FILTER FilterType;
-        public List<byte> Mask;
-        public List<byte> Pattern;
-        public List<byte> FlowControl;
+        public byte[] Mask;
+        public byte[] Pattern;
+        public byte[] FlowControl;
         public J2534TXFLAG TxFlags;
         public int FilterId;
 
         public MessageFilter()
         {
-            Mask = new List<byte>();
-            Pattern = new List<byte>();
-            FlowControl = new List<byte>();
             TxFlags = J2534TXFLAG.NONE;
         }
 
-        public MessageFilter(COMMONFILTER FilterType, List<byte> Match)
+        public MessageFilter(COMMONFILTER FilterType, byte[] Match)
         {
-            Mask = new List<byte>();
-            Pattern = new List<byte>();
-            FlowControl = new List<byte>();
             TxFlags = J2534TXFLAG.NONE;
 
             switch (FilterType)
@@ -128,54 +360,54 @@ namespace J2534
             }
         }
 
-        public void Clear()
+        public void Reset(int Length)
         {
-            Mask.Clear();
-            Pattern.Clear();
-            FlowControl.Clear();
+            Mask = new byte[Length];
+            Pattern = new byte[Length];
+            FlowControl = new byte[Length];
         }
 
         public void PassAll()
         {
-            Clear();
-            Mask.Add(0x00);
-            Pattern.Add(0x00);
+            Reset(1);
+            Mask[0] = 0x00;
+            Pattern[0] = 0x00;
             FilterType = J2534FILTER.PASS_FILTER;
         }
 
-        public void Pass(List<byte> Match)
+        public void Pass(byte[] Match)
         {
             ExactMatch(Match);
             FilterType = J2534FILTER.PASS_FILTER;
         }
 
-        public void Block(List<byte> Match)
+        public void Block(byte[] Match)
         {
             ExactMatch(Match);
             FilterType = J2534FILTER.BLOCK_FILTER;
         }
 
-        private void ExactMatch(List<byte> Match)
+        private void ExactMatch(byte[] Match)
         {
-            Clear();
-            Mask = Enumerable.Repeat((byte)0xFF, Match.Count).ToList();
+            Reset(Match.Length);
+            Mask = Enumerable.Repeat((byte)0xFF, Match.Length).ToArray();
             Pattern = Match;
         }
-        public void StandardISO15765(List<byte> SourceAddress)
+        public void StandardISO15765(byte[] SourceAddress)
         {
             //Should throw exception??
-            if (SourceAddress.Count != 4)
+            if (SourceAddress.Length != 4)
                 return;
-            Clear();
-            Mask.Add(0xFF);
-            Mask.Add(0xFF);
-            Mask.Add(0xFF);
-            Mask.Add(0xFF);
+            Reset(4);
+            Mask[0] = 0xFF;
+            Mask[1] = 0xFF;
+            Mask[2] = 0xFF;
+            Mask[3] = 0xFF;
 
-            Pattern.AddRange(SourceAddress);
+            Pattern = SourceAddress;
             Pattern[3] += 0x08;
 
-            FlowControl.AddRange(SourceAddress);
+            FlowControl = SourceAddress;
 
             TxFlags = J2534TXFLAG.ISO15765_FRAME_PAD;
             FilterType = J2534FILTER.FLOW_CONTROL_FILTER;
@@ -197,33 +429,122 @@ namespace J2534
         }
     }
 
-    [StructLayout(LayoutKind.Explicit)]
-    public class SConfigList
+    public class HeapSConfigList:IDisposable
     {
-        [FieldOffset(0), MarshalAs(UnmanagedType.U4)]
-        public int NumOfParams;
-        [FieldOffset(4)]
-        public IntPtr pSConfig;
+        private IntPtr pSConfigArrayHeap;
+        private bool disposed;
 
-        public SConfigList(int NumOfParams, IntPtr Pointer)
+        public HeapSConfigList(List<SConfig> ConfigItems)
         {
-            this.NumOfParams = NumOfParams;
-            this.pSConfig = Pointer;
+            //Create a blob big enough for 'ConfigItems' and two longs (NumOfItems and pItems)
+            IntPtr pSConfigArrayHeap = Marshal.AllocHGlobal(ConfigItems.Count * 8 + 8);
+
+            //Write NumOfItems
+            Marshal.WriteInt32(pSConfigArrayHeap, ConfigItems.Count);
+            //Write pItems.  To save complexity, the array immediately follows SConfigList.
+            Marshal.WriteIntPtr(pSConfigArrayHeap, 4, IntPtr.Add(pSConfigArrayHeap, 8));
+
+            //Write the array to the blob
+            for(int i = 0, Offset = 8;i < ConfigItems.Count;i++, Offset += 8)
+                Marshal.StructureToPtr<SConfig>(ConfigItems[i], IntPtr.Add(pSConfigArrayHeap, Offset), false);
+        }
+
+        public static implicit operator IntPtr(HeapSConfigList SConfigList)
+        {
+            return SConfigList.pSConfigArrayHeap;
+        }
+
+        public static implicit operator List<SConfig>(HeapSConfigList SConfigList)
+        {
+            int Count = Marshal.ReadInt32(SConfigList.pSConfigArrayHeap);
+            List<SConfig> List = new List<SConfig>(Count);
+            for (int i = 0, Offset = 8; i < Count; i++, Offset += 8)
+                List.Add(Marshal.PtrToStructure<SConfig>(IntPtr.Add(SConfigList.pSConfigArrayHeap, Offset)));
+            return List;
+        }
+
+        // Public implementation of Dispose pattern callable by consumers.
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        // Protected implementation of Dispose pattern.
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+                return;
+
+            if (disposing)
+            {
+                // Free any other managed objects here.
+                //
+            }
+
+            // Free any unmanaged objects here.
+            //
+            Marshal.FreeHGlobal(pSConfigArrayHeap);
+            disposed = true;
         }
     }
 
-    [StructLayout(LayoutKind.Explicit)]
-    public class SByteArray
+    public class HeapSByteArray:IDisposable
     {
-        [FieldOffset(0), MarshalAs(UnmanagedType.U4)]
-        public int NumOfBytes;
-        [FieldOffset(4)]
-        public IntPtr Pointer;
+        private IntPtr pSByteArray;
+        private bool disposed;
 
-        public SByteArray(int NumOfBytes, IntPtr Pointer)
+        public HeapSByteArray(byte[] SByteArray)
         {
-            this.NumOfBytes = NumOfBytes;
-            this.Pointer = Pointer;
+            pSByteArray = Marshal.AllocHGlobal(SByteArray.Length + 8);
+
+            Marshal.WriteInt32(pSByteArray, SByteArray.Length);
+            Marshal.WriteIntPtr(pSByteArray, 4, IntPtr.Add(pSByteArray, 8));
+            Marshal.Copy(SByteArray, 0, IntPtr.Add(pSByteArray, 8), SByteArray.Length);
+        }
+        public byte this[int Index]
+        {
+            get
+            {
+                return Marshal.ReadByte(IntPtr.Add(pSByteArray, Index + 8));
+            }
+        }
+
+        public static implicit operator IntPtr(HeapSByteArray HeapSByteArray)
+        {
+            return HeapSByteArray.pSByteArray;
+        }
+
+        public static implicit operator byte[](HeapSByteArray HeapSByteArray)
+        {
+            int Length = Marshal.ReadInt32(HeapSByteArray.pSByteArray);
+            byte[] Array = new byte[Length];
+            Marshal.Copy(IntPtr.Add(HeapSByteArray.pSByteArray, 8), Array, 0, Length);
+            return Array;
+        }
+        // Public implementation of Dispose pattern callable by consumers.
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        // Protected implementation of Dispose pattern.
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+                return;
+
+            if (disposing)
+            {
+                // Free any other managed objects here.
+                //
+            }
+
+            // Free any unmanaged objects here.
+            //
+            Marshal.FreeHGlobal(pSByteArray);
+            disposed = true;
         }
     }
 

@@ -14,12 +14,11 @@ namespace UnlimitedDiag
         public Root_Form()
         {
             InitializeComponent();
-            J2534Discovery.Test();
+            //J2534Discovery.Test();
+            //J2534.LibrarySelectionForm a = new J2534.LibrarySelectionForm();
+            //a.ShowDialog();
 
-            J2534.LibrarySelectionForm a = new J2534.LibrarySelectionForm();
-            a.ShowDialog();
-
-            //PhysicalDevices = J2534Discovery.OpenEverything();
+            PhysicalDevices = J2534Discovery.OpenEverything();
         }
 
         private void CmdDetectVehicleClick(object sender, EventArgs e)
@@ -36,7 +35,7 @@ namespace UnlimitedDiag
             if (Ch == null)
                 return;
 
-            Ch.StartMsgFilter(new MessageFilter(COMMONFILTER.STANDARDISO15765, new List<byte>{ 0x00, 0x00, 0x07, 0xE0 }));
+            Ch.StartMsgFilter(new MessageFilter(COMMONFILTER.STANDARDISO15765, new byte[] { 0x00, 0x00, 0x07, 0xE0 }));
             Ch.SetConfig(J2534PARAMETER.LOOP_BACK, 0);
 
             SAE.SAEDiag Diagnostic = new SAE.SAEDiag();

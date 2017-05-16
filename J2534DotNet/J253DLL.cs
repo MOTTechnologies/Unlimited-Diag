@@ -11,7 +11,6 @@ namespace J2534
         internal bool IsLoaded;
         internal J2534APIWrapper API;
         internal J2534ERR Status;
-        internal int NumOfOpenDevices = 0;
         public string API_Support
         {
             get
@@ -96,8 +95,8 @@ namespace J2534
         {
             Status = (J2534ERR)API.GetNextCarDAQ(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
             if (Status == J2534ERR.STATUS_NOERROR)
-                return true;
-            return false;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         internal GetNextCarDAQResults GetNextCarDAQ()
@@ -124,7 +123,7 @@ namespace J2534
             {
                 Exists = true,
                 Name = Marshal.PtrToStringAnsi(Marshal.ReadIntPtr(pName)),
-                Version = string.Format("{0}.{1}.{2}", b[0], b[1], b[2]),
+                Version = string.Format("{2}.{1}.{0}", b[0], b[1], b[2]),
                 Address = Marshal.PtrToStringAnsi(Marshal.ReadIntPtr(pAddr))
             };
 

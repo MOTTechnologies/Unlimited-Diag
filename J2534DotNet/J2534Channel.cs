@@ -8,13 +8,12 @@ namespace J2534
     public class Channel
     {
         private J2534PhysicalDevice Device;
-        private int ChannelID;
-        public J2534ERR Status { get; private set; }
+        private IntPtr pChannelID;
+        public J2534HeapMessageArray HeapMessages;
         public bool IsConnected { get; private set; }
         public J2534PROTOCOL ProtocolID { get; private set; }
         public int Baud { get; private set; }
         public J2534CONNECTFLAG ConnectFlags { get; internal set; }
-        public List<J2534Message> RxMessages;
         public List<PeriodicMsg> PeriodicMsgList;
         public List<MessageFilter> FilterList;
         public int DefaultTxTimeout { get; set; }
@@ -24,15 +23,27 @@ namespace J2534
         public byte FiveBaudKeyword2 { get; set; }
         private int J2534MessageSize = Marshal.SizeOf<J2534Message>();
 
+        public J2534ERR Status
+        {
+            get
+            {
+                return Device.Library.Status;
+            }
+            set
+            {
+                Device.Library.Status = value;
+            }
+        }
+
         internal Channel(J2534PhysicalDevice Device, J2534PROTOCOL ProtocolID, J2534BAUD Baud, J2534CONNECTFLAG ConnectFlags)
         {
+            pChannelID = Marshal.AllocHGlobal(4);
+            HeapMessages = new J2534HeapMessageArray(200);
             this.Device = Device;
             this.ProtocolID = ProtocolID;
             this.Baud = (int)Baud;
             this.ConnectFlags = ConnectFlags;
             Connect();
-            Status = Device.Status;
-            RxMessages = new List<J2534.J2534Message>();
             PeriodicMsgList = new List<PeriodicMsg>();
             FilterList = new List<J2534.MessageFilter>();
             DefaultTxTimeout = 50;
@@ -42,18 +53,18 @@ namespace J2534
 
         private void Connect()
         {
-            Status = (J2534ERR)Device.Library.API.Connect(Device.DeviceID, (int)ProtocolID, (int)ConnectFlags, Baud, ref ChannelID);
+            Status = (J2534ERR)Device.Library.API.Connect(Device.DeviceID, (int)ProtocolID, (int)ConnectFlags, Baud, pChannelID);
         }
 
         public bool Disconnect()
         {
-            Status = (J2534ERR)Device.Library.API.Disconnect(ChannelID);
+            Status = (J2534ERR)Device.Library.API.Disconnect(pChannelID);
             if (Status == J2534ERR.STATUS_NOERROR)
             {
                 IsConnected = false;
-                return false;
+                return CONST.SUCCESS;
             }
-            return true;
+            return CONST.FAILURE;
         }
 
         public bool GetMessage()
@@ -81,24 +92,13 @@ namespace J2534
         /// <returns>Returns 'false' if successful</returns>
         public bool GetMessages(int NumMsgs, int Timeout)
         {
-            int HeapBlobSize = J2534MessageSize * NumMsgs;
-            IntPtr pHeapBlob = Marshal.AllocHGlobal(HeapBlobSize);
+            HeapMessages.Length = NumMsgs;
 
-            Status = (J2534ERR)Device.Library.API.ReadMsgs(ChannelID, pHeapBlob, ref NumMsgs, Timeout);
-
-            if (Status == J2534ERR.STATUS_NOERROR)
-            {
-                HeapBlobSize = J2534MessageSize * NumMsgs;
-                RxMessages.Clear();
-                for (uint p = (uint)pHeapBlob; p < (uint)pHeapBlob + HeapBlobSize; p += (uint)J2534MessageSize)
-                    RxMessages.Add(Marshal.PtrToStructure<J2534Message>((IntPtr)p));
-            }
-
-            Marshal.FreeHGlobal(pHeapBlob);
+            Status = (J2534ERR)Device.Library.API.ReadMsgs(pChannelID, HeapMessages, HeapMessages.NumMsgs, Timeout);
 
             if(Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         /// <summary>
@@ -106,12 +106,12 @@ namespace J2534
         /// </summary>
         /// <param name="Message"></param>
         /// <returns>Returns 'false' if successful</returns>
-        public bool SendMessage(List<byte> Message)
+        public bool SendMessage(byte[] Message)
         {
-            List<J2534Message> MessageList = new List<J2534.J2534Message>();
-            MessageList.Add(new J2534.J2534Message(ProtocolID, DefaultTxFlag, Message));
+            HeapMessages[0] = new J2534.J2534Message(ProtocolID, DefaultTxFlag, Message);
+            HeapMessages.Length = 1;
 
-            return SendMessages(MessageList);
+            return SendMessages();
         }
 
         /// <summary>
@@ -120,29 +120,20 @@ namespace J2534
         /// <returns>Returns 'false' if successful</returns>
         public bool SendMessages(List<J2534Message> Messages)
         {
-            int NumMsgs = Messages.Count;
+            HeapMessages.Length = Messages.Count;
+            for (int i = 0;i < Messages.Count; i++)
+                HeapMessages[i] = Messages[i];
 
-            int HeapBlobSize = J2534MessageSize * NumMsgs;
-            IntPtr pHeapBlob = Marshal.AllocHGlobal(HeapBlobSize);
+            return SendMessages();
+        }
 
-            for (uint p = (uint)pHeapBlob, i = 0; p < (uint)pHeapBlob + HeapBlobSize; p += (uint)J2534MessageSize, i++)
-                Marshal.StructureToPtr<J2534Message>(Messages[(int)i], (IntPtr)p, false);
-
-            Status = (J2534ERR)Device.Library.API.WriteMsgs(ChannelID, pHeapBlob, ref NumMsgs, DefaultTxTimeout);
-
-            Marshal.FreeHGlobal(pHeapBlob);
-
-            //If some messages didnt get sent, put them into the RxMessages list
-            //Not sure what else to do in this case.
-            if(NumMsgs < Messages.Count)
-            {
-                Messages.RemoveRange(0, NumMsgs);
-                RxMessages = Messages;
-            }
+        public bool SendMessages()
+        {
+            Status = (J2534ERR)Device.Library.API.WriteMsgs(pChannelID, HeapMessages, HeapMessages.NumMsgs, DefaultTxTimeout);
 
             if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         public bool StartPeriodicMessage(J2534Message Message, int Interval)
@@ -150,11 +141,11 @@ namespace J2534
             PeriodicMsgList.Add(new PeriodicMsg(Message, Interval));
 
             //If success
-            if (!StartPeriodicMsg(PeriodicMsgList.Count - 1))
-                return false;
+            if (!StartPeriodicMessage(PeriodicMsgList.Count - 1))
+                return CONST.SUCCESS;
             //Otherwise, remove it from the list, and return fail
             PeriodicMsgList.RemoveAt(PeriodicMsgList.Count - 1);
-            return true;
+            return CONST.FAILURE;
         }
 
         /// <summary>
@@ -162,16 +153,19 @@ namespace J2534
         /// </summary>
         /// <param name="Index"></param>
         /// <returns>Returns 'false' if successful</returns>
-        public bool StartPeriodicMsg(int Index)
+        public bool StartPeriodicMessage(int Index)
         {
-            IntPtr pHeapBlob = Marshal.AllocHGlobal(J2534MessageSize);
-            Marshal.StructureToPtr<J2534Message>(PeriodicMsgList[Index].Message, pHeapBlob, false);
+            J2534HeapInt MessageID = new J2534HeapInt();
 
-            Status = (J2534ERR)Device.Library.API.StartPeriodicMsg(ChannelID, pHeapBlob, ref PeriodicMsgList[Index].MessageID, PeriodicMsgList[Index].Interval);
+            J2534HeapMessage Message = new J2534HeapMessage(PeriodicMsgList[Index].Message);
+
+            Status = (J2534ERR)Device.Library.API.StartPeriodicMsg(pChannelID, Message.Ptr, MessageID, PeriodicMsgList[Index].Interval);
+
+            PeriodicMsgList[Index].MessageID = MessageID;
 
             if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         /// <summary>
@@ -181,11 +175,10 @@ namespace J2534
         /// <returns>Returns 'false' if successful</returns>
         public bool StopPeriodicMsg(int Index)
         {
-            int MsgID = PeriodicMsgList[Index].MessageID;
-            Status = (J2534ERR)Device.Library.API.StopPeriodicMsg(ChannelID, MsgID);
+            Status = (J2534ERR)Device.Library.API.StopPeriodicMsg(pChannelID, PeriodicMsgList[Index].MessageID);
             if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         /// <summary>
@@ -199,44 +192,37 @@ namespace J2534
             if(StartMsgFilter(FilterList.Count - 1))
             {
                 FilterList.RemoveAt(FilterList.Count - 1);
-                return true;
+                return CONST.FAILURE;
             }
-            return false;
+            return CONST.SUCCESS;
         }
 
         public bool StartMsgFilter(int Index)
         {
-            IntPtr pMask = Marshal.AllocHGlobal(J2534MessageSize);
-            IntPtr pPattern = Marshal.AllocHGlobal(J2534MessageSize);
-            IntPtr pFlowControl = Marshal.AllocHGlobal(J2534MessageSize);
+            J2534HeapInt FilterID = new J2534HeapInt();
 
-            Marshal.StructureToPtr<J2534Message>(new J2534Message(ProtocolID, FilterList[Index].TxFlags, FilterList[Index].Mask), pMask, false);
-            Marshal.StructureToPtr<J2534Message>(new J2534Message(ProtocolID, FilterList[Index].TxFlags, FilterList[Index].Pattern), pPattern, false);
-            Marshal.StructureToPtr<J2534Message>(new J2534Message(ProtocolID, FilterList[Index].TxFlags, FilterList[Index].FlowControl), pFlowControl, false);
+            J2534HeapMessage Mask = new J2534HeapMessage(new J2534Message(ProtocolID, FilterList[Index].TxFlags, FilterList[Index].Mask));
+            J2534HeapMessage Pattern = new J2534HeapMessage(new J2534Message(ProtocolID, FilterList[Index].TxFlags, FilterList[Index].Pattern));
+            J2534HeapMessage FlowControl = new J2534HeapMessage(new J2534Message(ProtocolID, FilterList[Index].TxFlags, FilterList[Index].FlowControl));
 
-            if (FilterList[Index].FilterType != J2534FILTER.FLOW_CONTROL_FILTER)
-            {
-                Marshal.FreeHGlobal(pFlowControl);
-                pFlowControl = IntPtr.Zero;
-            }
+            if (FilterList[Index].FilterType == J2534FILTER.FLOW_CONTROL_FILTER)
+                Status = (J2534ERR)Device.Library.API.StartMsgFilter(pChannelID, (int)FilterList[Index].FilterType, Mask.Ptr, Pattern.Ptr, FlowControl.Ptr, FilterID);
+            else
+                Status = (J2534ERR)Device.Library.API.StartMsgFilter(pChannelID, (int)FilterList[Index].FilterType, Mask.Ptr, Pattern.Ptr, IntPtr.Zero, FilterID);
 
-            Status = (J2534ERR)Device.Library.API.StartMsgFilter(ChannelID, (int)FilterList[Index].FilterType, pMask, pPattern, pFlowControl, ref FilterList[Index].FilterId);
-
-            Marshal.FreeHGlobal(pMask);
-            Marshal.FreeHGlobal(pPattern);
-            Marshal.FreeHGlobal(pFlowControl);
+            FilterList[Index].FilterId = FilterID;
 
             if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         public bool StopMsgFilter(int Index)
         {
-            Status = (J2534ERR)Device.Library.API.StopMsgFilter(ChannelID, FilterList[Index].FilterId);
+            Status = (J2534ERR)Device.Library.API.StopMsgFilter(pChannelID, FilterList[Index].FilterId);
             if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         public bool GetConfig(J2534PARAMETER Parameter, ref int Value)
@@ -246,34 +232,17 @@ namespace J2534
                 Value = SConfig[0].Value;
 
             if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
+
         public List<SConfig> GetConfig(List<SConfig> SConfig)
         {
-            int SConfigSize = Marshal.SizeOf<SConfig>();
-            int SConfigBlobSize = SConfigSize * SConfig.Count;
+            HeapSConfigList SConfigList = new HeapSConfigList(SConfig);
 
-            IntPtr pSConfigList = Marshal.AllocHGlobal(Marshal.SizeOf<SConfigList>());
-            IntPtr pSConfigBlob = Marshal.AllocHGlobal(SConfigBlobSize);
-
-            Marshal.StructureToPtr<SConfigList>(new SConfigList(SConfig.Count(), pSConfigBlob), pSConfigList, false);
-            for (uint p = (uint)pSConfigBlob, i = 0; p < (uint)pSConfigBlob + SConfigBlobSize; p += (uint)SConfigSize, i++)
-                Marshal.StructureToPtr<SConfig>(SConfig[(int)i], (IntPtr)p, false);
-
-            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.GET_CONFIG, pSConfigList, IntPtr.Zero);
-
-            SConfigList SConfigList = Marshal.PtrToStructure<SConfigList>(pSConfigList);
-            List<SConfig> ReturnList = new List<SConfig>();
-
-            SConfigBlobSize = SConfigSize * SConfigList.NumOfParams;
-            for (uint p = (uint)SConfigList.pSConfig, i = 0; p < (uint)SConfigList.pSConfig + SConfigBlobSize; p += (uint)SConfigSize, i++)
-                ReturnList.Add(Marshal.PtrToStructure<SConfig>((IntPtr)p));
-
-            Marshal.FreeHGlobal(pSConfigBlob);
-            Marshal.FreeHGlobal(pSConfigList);
-
-            return ReturnList;
+            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.GET_CONFIG, SConfigList, IntPtr.Zero);
+ 
+            return SConfigList;
         }
 
         public bool SetConfig(J2534PARAMETER Parameter, int Value)
@@ -283,64 +252,53 @@ namespace J2534
 
         public bool SetConfig(List<SConfig> SConfig)
         {
-            int SConfigSize = Marshal.SizeOf<SConfig>();
-            int SConfigBlobSize = SConfigSize * SConfig.Count;
+            HeapSConfigList SConfigList = new HeapSConfigList(SConfig);
 
-            IntPtr pSConfigList = Marshal.AllocHGlobal(Marshal.SizeOf<SConfigList>());
-            IntPtr pSConfigBlob = Marshal.AllocHGlobal(SConfigBlobSize);
-
-            Marshal.StructureToPtr<SConfigList>(new SConfigList(SConfig.Count(), pSConfigBlob), pSConfigList, false);
-            for (uint p = (uint)pSConfigBlob, i = 0; p < (uint)pSConfigBlob + SConfigBlobSize; p += (uint)SConfigSize, i++)
-                Marshal.StructureToPtr<SConfig>(SConfig[(int)i], (IntPtr)p, false);
-
-            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.SET_CONFIG, pSConfigList, IntPtr.Zero);
-
-            Marshal.FreeHGlobal(pSConfigList);
-            Marshal.FreeHGlobal(pSConfigBlob);
+            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.SET_CONFIG, SConfigList, IntPtr.Zero);
 
             if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         public bool ClearTxBuffer()
         {
-            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.CLEAR_TX_BUFFER, IntPtr.Zero, IntPtr.Zero);
+            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.CLEAR_TX_BUFFER, IntPtr.Zero, IntPtr.Zero);
             if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         public bool ClearRxBuffer()
         {
-            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.CLEAR_RX_BUFFER, IntPtr.Zero, IntPtr.Zero);
+            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.CLEAR_RX_BUFFER, IntPtr.Zero, IntPtr.Zero);
             if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         public bool ClearPeriodicMsgs()
         {
-            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.CLEAR_PERIODIC_MSGS, IntPtr.Zero, IntPtr.Zero);
+            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.CLEAR_PERIODIC_MSGS, IntPtr.Zero, IntPtr.Zero);
             if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         public bool ClearMsgFilters()
         {
-            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.CLEAR_MSG_FILTERS, IntPtr.Zero, IntPtr.Zero);
+            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.CLEAR_MSG_FILTERS, IntPtr.Zero, IntPtr.Zero);
             if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         public bool ClearFunctMsgLookupTable()
         {
-            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.CLEAR_FUNCT_MSG_LOOKUP_TABLE, IntPtr.Zero, IntPtr.Zero);
+            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.CLEAR_FUNCT_MSG_LOOKUP_TABLE, IntPtr.Zero, IntPtr.Zero);
             if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         public bool AddToFunctMsgLookupTable(byte Addr)
@@ -350,20 +308,13 @@ namespace J2534
 
         public bool AddToFunctMsgLookupTable(List<byte> FuncAddr)
         {
-            IntPtr input = Marshal.AllocHGlobal(Marshal.SizeOf<SByteArray>());
-            IntPtr pFuncAddr = Marshal.AllocHGlobal(FuncAddr.Count);
+            HeapSByteArray SByteArray = new HeapSByteArray(FuncAddr.ToArray());
 
-            Marshal.StructureToPtr<SByteArray>(new SByteArray(FuncAddr.Count, pFuncAddr), input, false);
-            Marshal.Copy(FuncAddr.ToArray(), 0, pFuncAddr, FuncAddr.Count);
-
-            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.ADD_TO_FUNCT_MSG_LOOKUP_TABLE, input, IntPtr.Zero);
-
-            Marshal.FreeHGlobal(input);
-            Marshal.FreeHGlobal(pFuncAddr);
+            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.ADD_TO_FUNCT_MSG_LOOKUP_TABLE, SByteArray, IntPtr.Zero);
 
             if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         public bool DeleteFromFunctMsgLookupTable(byte Addr)
@@ -373,77 +324,40 @@ namespace J2534
 
         public bool DeleteFromFunctMsgLookupTable(List<byte> FuncAddr)
         {
-            IntPtr input = Marshal.AllocHGlobal(Marshal.SizeOf<SByteArray>());
-            IntPtr pFuncAddr = Marshal.AllocHGlobal(FuncAddr.Count);
+            HeapSByteArray SByteArray = new HeapSByteArray(FuncAddr.ToArray());
 
-            Marshal.StructureToPtr<SByteArray>(new SByteArray(FuncAddr.Count, pFuncAddr), input, false);
-            Marshal.Copy(FuncAddr.ToArray(), 0, pFuncAddr, FuncAddr.Count);
-
-            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.DELETE_FROM_FUNCT_MSG_LOOKUP_TABLE, input, IntPtr.Zero);
-
-            Marshal.FreeHGlobal(input);
-            Marshal.FreeHGlobal(pFuncAddr);
+            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.DELETE_FROM_FUNCT_MSG_LOOKUP_TABLE, SByteArray, IntPtr.Zero);
 
             if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         public bool FiveBaudInit(byte TargetAddress)
         {
-            IntPtr input = Marshal.AllocHGlobal(Marshal.SizeOf<SByteArray>());
-            IntPtr output = Marshal.AllocHGlobal(Marshal.SizeOf<SByteArray>());
-            IntPtr pAddress = Marshal.AllocHGlobal(Marshal.SizeOf<byte>());
-            IntPtr pKeywords = Marshal.AllocHGlobal(Marshal.SizeOf<byte>() * 2);
+            HeapSByteArray Input = new HeapSByteArray(new byte[] { TargetAddress });
+            HeapSByteArray Output = new HeapSByteArray(new byte[2]);
 
-            Marshal.StructureToPtr<SByteArray>(new SByteArray(1, pAddress), input, false);
-            Marshal.StructureToPtr<SByteArray>(new SByteArray(2, pKeywords), output, false);
-            Marshal.WriteByte(pAddress, TargetAddress);
-
-            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.FIVE_BAUD_INIT, input, output);
+            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.FIVE_BAUD_INIT, Input, Output);
 
             if (Status == J2534ERR.STATUS_NOERROR)
             {
-                SByteArray SByteArray = Marshal.PtrToStructure<SByteArray>(output);    
-                if(SByteArray.NumOfBytes == 2)
-                {
-                    FiveBaudKeyword1 = Marshal.ReadByte(SByteArray.Pointer, 0);
-                    FiveBaudKeyword2 = Marshal.ReadByte(SByteArray.Pointer, 1);
-                }
+                    FiveBaudKeyword1 = Output[0];
+                    FiveBaudKeyword2 = Output[1];
+                    return CONST.SUCCESS;
             }
-
-            Marshal.FreeHGlobal(input);
-            Marshal.FreeHGlobal(output);
-            Marshal.FreeHGlobal(pAddress);
-            Marshal.FreeHGlobal(pKeywords);
-
-            if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+            return CONST.FAILURE;
         }
 
         public bool FastInit(J2534Message TxMessage)
         {
+            J2534HeapMessage input = new J2534HeapMessage(TxMessage);
 
-            IntPtr input = Marshal.AllocHGlobal(Marshal.SizeOf<J2534Message>());
-            IntPtr output = Marshal.AllocHGlobal(Marshal.SizeOf<J2534Message>());
-
-            Marshal.StructureToPtr<J2534Message>(TxMessage, input, false);
-
-            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.FAST_INIT, input, output);
+            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.FAST_INIT, input, HeapMessages);
 
             if (Status == J2534ERR.STATUS_NOERROR)
-            {                
-                RxMessages.Clear();
-                RxMessages.Add(Marshal.PtrToStructure<J2534Message>(output));
-            }
-
-            Marshal.FreeHGlobal(input);
-            Marshal.FreeHGlobal(output);
-
-            if (Status == J2534ERR.STATUS_NOERROR)
-                return false;
-            return true;
+                return CONST.SUCCESS;
+            return CONST.FAILURE;
         }
 
         public bool SetProgrammingVoltage(J2534PIN PinNumber, int Voltage)
