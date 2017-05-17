@@ -8,8 +8,8 @@ namespace J2534
     public class Channel
     {
         private J2534PhysicalDevice Device;
-        private IntPtr pChannelID;
-        public J2534HeapMessageArray HeapMessages;
+        private int ChannelID;
+        public J2534HeapMessageArray HeapMessageArray;
         public bool IsConnected { get; private set; }
         public J2534PROTOCOL ProtocolID { get; private set; }
         public int Baud { get; private set; }
@@ -19,9 +19,6 @@ namespace J2534
         public int DefaultTxTimeout { get; set; }
         public int DefaultRxTimeout { get; set; }
         public J2534TXFLAG DefaultTxFlag { get; set; }
-        public byte FiveBaudKeyword1 { get; set; }
-        public byte FiveBaudKeyword2 { get; set; }
-        private int J2534MessageSize = Marshal.SizeOf<J2534Message>();
 
         public J2534ERR Status
         {
@@ -35,30 +32,34 @@ namespace J2534
             }
         }
 
+        //Channel Constructor
         internal Channel(J2534PhysicalDevice Device, J2534PROTOCOL ProtocolID, J2534BAUD Baud, J2534CONNECTFLAG ConnectFlags)
         {
-            pChannelID = Marshal.AllocHGlobal(4);
-            HeapMessages = new J2534HeapMessageArray(200);
+            HeapMessageArray = new J2534HeapMessageArray(200);
             this.Device = Device;
             this.ProtocolID = ProtocolID;
             this.Baud = (int)Baud;
             this.ConnectFlags = ConnectFlags;
-            Connect();
             PeriodicMsgList = new List<PeriodicMsg>();
             FilterList = new List<J2534.MessageFilter>();
             DefaultTxTimeout = 50;
             DefaultRxTimeout = 250;
             DefaultTxFlag = J2534TXFLAG.NONE;
+            Connect();
         }
 
         private void Connect()
         {
-            Status = (J2534ERR)Device.Library.API.Connect(Device.DeviceID, (int)ProtocolID, (int)ConnectFlags, Baud, pChannelID);
+            J2534HeapInt ChannelID = new J2534HeapInt();
+
+            Status = (J2534ERR)Device.Library.API.Connect(Device.DeviceID, (int)ProtocolID, (int)ConnectFlags, Baud, ChannelID);
+
+            this.ChannelID = ChannelID;
         }
 
         public bool Disconnect()
         {
-            Status = (J2534ERR)Device.Library.API.Disconnect(pChannelID);
+            Status = (J2534ERR)Device.Library.API.Disconnect(ChannelID);
             if (Status == J2534ERR.STATUS_NOERROR)
             {
                 IsConnected = false;
@@ -92,9 +93,9 @@ namespace J2534
         /// <returns>Returns 'false' if successful</returns>
         public bool GetMessages(int NumMsgs, int Timeout)
         {
-            HeapMessages.Length = NumMsgs;
+            HeapMessageArray.Length = NumMsgs;
 
-            Status = (J2534ERR)Device.Library.API.ReadMsgs(pChannelID, HeapMessages, HeapMessages.NumMsgs, Timeout);
+            Status = (J2534ERR)Device.Library.API.ReadMsgs(ChannelID, HeapMessageArray, HeapMessageArray.NumMsgs, Timeout);
 
             if(Status == J2534ERR.STATUS_NOERROR)
                 return CONST.SUCCESS;
@@ -108,8 +109,8 @@ namespace J2534
         /// <returns>Returns 'false' if successful</returns>
         public bool SendMessage(byte[] Message)
         {
-            HeapMessages[0] = new J2534.J2534Message(ProtocolID, DefaultTxFlag, Message);
-            HeapMessages.Length = 1;
+            HeapMessageArray[0] = new J2534.J2534Message(ProtocolID, DefaultTxFlag, Message);
+            HeapMessageArray.Length = 1;
 
             return SendMessages();
         }
@@ -120,16 +121,16 @@ namespace J2534
         /// <returns>Returns 'false' if successful</returns>
         public bool SendMessages(List<J2534Message> Messages)
         {
-            HeapMessages.Length = Messages.Count;
+            HeapMessageArray.Length = Messages.Count;
             for (int i = 0;i < Messages.Count; i++)
-                HeapMessages[i] = Messages[i];
+                HeapMessageArray[i] = Messages[i];
 
             return SendMessages();
         }
 
         public bool SendMessages()
         {
-            Status = (J2534ERR)Device.Library.API.WriteMsgs(pChannelID, HeapMessages, HeapMessages.NumMsgs, DefaultTxTimeout);
+            Status = (J2534ERR)Device.Library.API.WriteMsgs(ChannelID, HeapMessageArray, HeapMessageArray.NumMsgs, DefaultTxTimeout);
 
             if (Status == J2534ERR.STATUS_NOERROR)
                 return CONST.SUCCESS;
@@ -159,7 +160,7 @@ namespace J2534
 
             J2534HeapMessage Message = new J2534HeapMessage(PeriodicMsgList[Index].Message);
 
-            Status = (J2534ERR)Device.Library.API.StartPeriodicMsg(pChannelID, Message.Ptr, MessageID, PeriodicMsgList[Index].Interval);
+            Status = (J2534ERR)Device.Library.API.StartPeriodicMsg(ChannelID, Message, MessageID, PeriodicMsgList[Index].Interval);
 
             PeriodicMsgList[Index].MessageID = MessageID;
 
@@ -175,7 +176,7 @@ namespace J2534
         /// <returns>Returns 'false' if successful</returns>
         public bool StopPeriodicMsg(int Index)
         {
-            Status = (J2534ERR)Device.Library.API.StopPeriodicMsg(pChannelID, PeriodicMsgList[Index].MessageID);
+            Status = (J2534ERR)Device.Library.API.StopPeriodicMsg(ChannelID, PeriodicMsgList[Index].MessageID);
             if (Status == J2534ERR.STATUS_NOERROR)
                 return CONST.SUCCESS;
             return CONST.FAILURE;
@@ -206,9 +207,9 @@ namespace J2534
             J2534HeapMessage FlowControl = new J2534HeapMessage(new J2534Message(ProtocolID, FilterList[Index].TxFlags, FilterList[Index].FlowControl));
 
             if (FilterList[Index].FilterType == J2534FILTER.FLOW_CONTROL_FILTER)
-                Status = (J2534ERR)Device.Library.API.StartMsgFilter(pChannelID, (int)FilterList[Index].FilterType, Mask.Ptr, Pattern.Ptr, FlowControl.Ptr, FilterID);
+                Status = (J2534ERR)Device.Library.API.StartMsgFilter(ChannelID, (int)FilterList[Index].FilterType, Mask, Pattern, FlowControl, FilterID);
             else
-                Status = (J2534ERR)Device.Library.API.StartMsgFilter(pChannelID, (int)FilterList[Index].FilterType, Mask.Ptr, Pattern.Ptr, IntPtr.Zero, FilterID);
+                Status = (J2534ERR)Device.Library.API.StartMsgFilter(ChannelID, (int)FilterList[Index].FilterType, Mask, Pattern, IntPtr.Zero, FilterID);
 
             FilterList[Index].FilterId = FilterID;
 
@@ -219,28 +220,25 @@ namespace J2534
 
         public bool StopMsgFilter(int Index)
         {
-            Status = (J2534ERR)Device.Library.API.StopMsgFilter(pChannelID, FilterList[Index].FilterId);
+            Status = (J2534ERR)Device.Library.API.StopMsgFilter(ChannelID, FilterList[Index].FilterId);
             if (Status == J2534ERR.STATUS_NOERROR)
                 return CONST.SUCCESS;
             return CONST.FAILURE;
         }
 
-        public bool GetConfig(J2534PARAMETER Parameter, ref int Value)
+        public int GetConfig(J2534PARAMETER Parameter)
         {
             List<SConfig> SConfig = GetConfig(new List<SConfig>() { new J2534.SConfig(Parameter, 0) });
             if (SConfig.Count > 0)
-                Value = SConfig[0].Value;
-
-            if (Status == J2534ERR.STATUS_NOERROR)
-                return CONST.SUCCESS;
-            return CONST.FAILURE;
+                return SConfig[0].Value;
+            return 0;
         }
 
         public List<SConfig> GetConfig(List<SConfig> SConfig)
         {
             HeapSConfigList SConfigList = new HeapSConfigList(SConfig);
 
-            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.GET_CONFIG, SConfigList, IntPtr.Zero);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.GET_CONFIG, SConfigList, IntPtr.Zero);
  
             return SConfigList;
         }
@@ -254,7 +252,7 @@ namespace J2534
         {
             HeapSConfigList SConfigList = new HeapSConfigList(SConfig);
 
-            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.SET_CONFIG, SConfigList, IntPtr.Zero);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.SET_CONFIG, SConfigList, IntPtr.Zero);
 
             if (Status == J2534ERR.STATUS_NOERROR)
                 return CONST.SUCCESS;
@@ -263,7 +261,7 @@ namespace J2534
 
         public bool ClearTxBuffer()
         {
-            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.CLEAR_TX_BUFFER, IntPtr.Zero, IntPtr.Zero);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.CLEAR_TX_BUFFER, IntPtr.Zero, IntPtr.Zero);
             if (Status == J2534ERR.STATUS_NOERROR)
                 return CONST.SUCCESS;
             return CONST.FAILURE;
@@ -271,7 +269,7 @@ namespace J2534
 
         public bool ClearRxBuffer()
         {
-            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.CLEAR_RX_BUFFER, IntPtr.Zero, IntPtr.Zero);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.CLEAR_RX_BUFFER, IntPtr.Zero, IntPtr.Zero);
             if (Status == J2534ERR.STATUS_NOERROR)
                 return CONST.SUCCESS;
             return CONST.FAILURE;
@@ -279,7 +277,7 @@ namespace J2534
 
         public bool ClearPeriodicMsgs()
         {
-            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.CLEAR_PERIODIC_MSGS, IntPtr.Zero, IntPtr.Zero);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.CLEAR_PERIODIC_MSGS, IntPtr.Zero, IntPtr.Zero);
             if (Status == J2534ERR.STATUS_NOERROR)
                 return CONST.SUCCESS;
             return CONST.FAILURE;
@@ -287,7 +285,7 @@ namespace J2534
 
         public bool ClearMsgFilters()
         {
-            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.CLEAR_MSG_FILTERS, IntPtr.Zero, IntPtr.Zero);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.CLEAR_MSG_FILTERS, IntPtr.Zero, IntPtr.Zero);
             if (Status == J2534ERR.STATUS_NOERROR)
                 return CONST.SUCCESS;
             return CONST.FAILURE;
@@ -295,7 +293,7 @@ namespace J2534
 
         public bool ClearFunctMsgLookupTable()
         {
-            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.CLEAR_FUNCT_MSG_LOOKUP_TABLE, IntPtr.Zero, IntPtr.Zero);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.CLEAR_FUNCT_MSG_LOOKUP_TABLE, IntPtr.Zero, IntPtr.Zero);
             if (Status == J2534ERR.STATUS_NOERROR)
                 return CONST.SUCCESS;
             return CONST.FAILURE;
@@ -306,11 +304,11 @@ namespace J2534
             return AddToFunctMsgLookupTable(new List<byte>() { Addr });
         }
 
-        public bool AddToFunctMsgLookupTable(List<byte> FuncAddr)
+        public bool AddToFunctMsgLookupTable(List<byte> AddressList)
         {
-            HeapSByteArray SByteArray = new HeapSByteArray(FuncAddr.ToArray());
+            HeapSByteArray SByteArray = new HeapSByteArray(AddressList.ToArray());
 
-            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.ADD_TO_FUNCT_MSG_LOOKUP_TABLE, SByteArray, IntPtr.Zero);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.ADD_TO_FUNCT_MSG_LOOKUP_TABLE, SByteArray, IntPtr.Zero);
 
             if (Status == J2534ERR.STATUS_NOERROR)
                 return CONST.SUCCESS;
@@ -322,42 +320,35 @@ namespace J2534
             return DeleteFromFunctMsgLookupTable(new List<byte>() { Addr });
         }
 
-        public bool DeleteFromFunctMsgLookupTable(List<byte> FuncAddr)
+        public bool DeleteFromFunctMsgLookupTable(List<byte> AddressList)
         {
-            HeapSByteArray SByteArray = new HeapSByteArray(FuncAddr.ToArray());
+            HeapSByteArray SByteArray = new HeapSByteArray(AddressList.ToArray());
 
-            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.DELETE_FROM_FUNCT_MSG_LOOKUP_TABLE, SByteArray, IntPtr.Zero);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.DELETE_FROM_FUNCT_MSG_LOOKUP_TABLE, SByteArray, IntPtr.Zero);
 
             if (Status == J2534ERR.STATUS_NOERROR)
                 return CONST.SUCCESS;
             return CONST.FAILURE;
         }
 
-        public bool FiveBaudInit(byte TargetAddress)
+        public byte[] FiveBaudInit(byte TargetAddress)
         {
             HeapSByteArray Input = new HeapSByteArray(new byte[] { TargetAddress });
             HeapSByteArray Output = new HeapSByteArray(new byte[2]);
 
-            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.FIVE_BAUD_INIT, Input, Output);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.FIVE_BAUD_INIT, Input, Output);
 
-            if (Status == J2534ERR.STATUS_NOERROR)
-            {
-                    FiveBaudKeyword1 = Output[0];
-                    FiveBaudKeyword2 = Output[1];
-                    return CONST.SUCCESS;
-            }
-            return CONST.FAILURE;
+            return Output;
         }
 
-        public bool FastInit(J2534Message TxMessage)
+        public J2534Message FastInit(J2534Message TxMessage)
         {
-            J2534HeapMessage input = new J2534HeapMessage(TxMessage);
+            J2534HeapMessage Input = new J2534HeapMessage(TxMessage);
+            J2534HeapMessage Output = new J2534HeapMessage();
 
-            Status = (J2534ERR)Device.Library.API.IOCtl(pChannelID, (int)J2534IOCTL.FAST_INIT, input, HeapMessages);
+            Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.FAST_INIT, Input, Output);
 
-            if (Status == J2534ERR.STATUS_NOERROR)
-                return CONST.SUCCESS;
-            return CONST.FAILURE;
+            return Output;
         }
 
         public bool SetProgrammingVoltage(J2534PIN PinNumber, int Voltage)
@@ -367,11 +358,27 @@ namespace J2534
 
         public int MeasureProgrammingVoltage()
         {
+            if (Device.Library.API_Signature.SAE_API == SAE_API.V202_SIGNATURE)
+            {
+                J2534HeapInt Voltage = new J2534HeapInt();
+
+                Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.READ_PROG_VOLTAGE, IntPtr.Zero, Voltage);
+
+                return Voltage;
+            }
             return Device.MeasureProgrammingVoltage();
         }
 
         public int MeasureBatteryVoltage()
         {
+            if(Device.Library.API_Signature.SAE_API == SAE_API.V202_SIGNATURE)
+            {
+                J2534HeapInt Voltage = new J2534HeapInt();
+
+                Status = (J2534ERR)Device.Library.API.IOCtl(ChannelID, (int)J2534IOCTL.READ_VBATT, IntPtr.Zero, Voltage);
+
+                return Voltage;
+            }
             return Device.MeasureBatteryVoltage();
         }
 

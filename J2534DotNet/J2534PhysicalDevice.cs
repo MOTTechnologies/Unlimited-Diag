@@ -5,7 +5,7 @@ namespace J2534
 {
     public class J2534PhysicalDevice
     {
-        internal IntPtr DeviceID;
+        internal int DeviceID;
         internal J2534DLL Library;
         public string FirmwareVersion;
         public string LibraryVersion;
@@ -30,7 +30,6 @@ namespace J2534
         internal J2534PhysicalDevice(J2534DLL Library)
         {
             this.Library = Library;
-            DeviceID = Marshal.AllocHGlobal(4);
             ConnectToDevice("");
         }
 
@@ -38,7 +37,6 @@ namespace J2534
         {
             this.Library = Library;
             this.DeviceName = DeviceName;
-            DeviceID = Marshal.AllocHGlobal(4);
             ConnectToDevice(this.DeviceName);
         }
 
@@ -48,7 +46,6 @@ namespace J2534
             this.DeviceName = CarDAQ.Name;
             this.DrewtechVersion = CarDAQ.Version;
             this.DrewtechAddress = CarDAQ.Address;
-            DeviceID = Marshal.AllocHGlobal(4);
 
             ConnectToDevice(DeviceName);
         }
@@ -73,6 +70,8 @@ namespace J2534
             else
                 DeviceName = string.Format("Device {0}", J2534Discovery.PhysicalDevices.FindAll(Listed => Listed.Library == this.Library).Count + 1);
 
+            J2534HeapInt DeviceID = new J2534HeapInt();
+
             Status = (J2534ERR)Library.API.Open(pDeviceName, DeviceID);
 
             Marshal.FreeHGlobal(pDeviceName);
@@ -81,6 +80,7 @@ namespace J2534
                                                       J2534Discovery.PhysicalDevices.FindAll(Listed => Listed.Library == this.Library).Count == 0 &&
                                                       IsConnected))
             {
+                this.DeviceID = DeviceID;
                 ValidDevice = true;
                 GetVersion();
                 return CONST.SUCCESS;
@@ -110,7 +110,9 @@ namespace J2534
             IntPtr pFirmwareVersion = Marshal.AllocHGlobal(80);
             IntPtr pDllVersion = Marshal.AllocHGlobal(80);
             IntPtr pApiVersion = Marshal.AllocHGlobal(80);
+
             Status = (J2534ERR)Library.API.ReadVersion(DeviceID, pFirmwareVersion, pDllVersion, pApiVersion);
+
             if (Status == J2534ERR.STATUS_NOERROR)
             {
                 FirmwareVersion = Marshal.PtrToStringAnsi(pFirmwareVersion);
@@ -142,33 +144,20 @@ namespace J2534
 
         public int MeasureBatteryVoltage()
         {
-            //Needs to have a handler for v2.02
-            int voltage = 0;
-            IntPtr output = Marshal.AllocHGlobal(4);
+            J2534HeapInt Voltage = new J2534HeapInt();
 
-            Status = (J2534ERR)Library.API.IOCtl(DeviceID, (int)J2534IOCTL.READ_VBATT, IntPtr.Zero, output);
-            if (Status == J2534ERR.STATUS_NOERROR)
-                voltage = Marshal.ReadInt32(output);
+            Status = (J2534ERR)Library.API.IOCtl(DeviceID, (int)J2534IOCTL.READ_VBATT, IntPtr.Zero, Voltage);
 
-            Marshal.FreeHGlobal(output);
-
-            return voltage;
+            return Voltage;
         }
 
         public int MeasureProgrammingVoltage()
         {
-            int voltage = 0;
-            IntPtr output = Marshal.AllocHGlobal(4);
+            J2534HeapInt Voltage = new J2534HeapInt();
 
-            Status = (J2534ERR)Library.API.IOCtl(DeviceID, (int)J2534IOCTL.READ_PROG_VOLTAGE, IntPtr.Zero, output);
-            if (Status == J2534ERR.STATUS_NOERROR)
-            {
-                voltage = Marshal.ReadInt32(output);
-            }
+            Status = (J2534ERR)Library.API.IOCtl(DeviceID, (int)J2534IOCTL.READ_PROG_VOLTAGE, IntPtr.Zero, Voltage);
 
-            Marshal.FreeHGlobal(output);
-
-            return voltage;
+            return Voltage;
         }
 
         public Channel ConstructChannel(J2534PROTOCOL ProtocolID, J2534BAUD Baud, J2534CONNECTFLAG ConnectFlags)

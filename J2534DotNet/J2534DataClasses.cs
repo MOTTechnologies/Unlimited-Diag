@@ -72,7 +72,7 @@ namespace J2534
             {
                 if(value > array_max_length)
                 {
-                    //Do something about it
+                    throw new IndexOutOfRangeException("Length is greater than array bound");
                 }
                 else
                     Marshal.WriteInt32(pNumMsgs, value);
@@ -85,33 +85,33 @@ namespace J2534
             {
                 if(index > Marshal.ReadInt32(pNumMsgs))
                 {
-                    //do something about index out of bounds
+                    throw new IndexOutOfRangeException("Index is greater than array bound");
                 }
-                IntPtr pData = (IntPtr)(index * CONST.J2534MESSAGESIZE + (int)pMessages + 24);
+                IntPtr pMessage = IntPtr.Add(pMessages, index * CONST.J2534MESSAGESIZE);
                 return new J2534Message()
                 {
-                    ProtocolID = (J2534PROTOCOL)Marshal.ReadInt32(pData, -24),
-                    RxStatus = (J2534RXFLAG)Marshal.ReadInt32(pData, -20),
-                    TxFlags = (J2534TXFLAG)Marshal.ReadInt32(pData, -16),
-                    Timestamp = (uint)Marshal.ReadInt32(pData, -12),
-                    ExtraDataIndex = (uint)Marshal.ReadInt32(pData, -4),
-                    Data = MarshalDataArray(pData),
+                    ProtocolID = (J2534PROTOCOL)Marshal.ReadInt32(pMessage),
+                    RxStatus = (J2534RXFLAG)Marshal.ReadInt32(pMessage, 4),
+                    TxFlags = (J2534TXFLAG)Marshal.ReadInt32(pMessage, 8),
+                    Timestamp = (uint)Marshal.ReadInt32(pMessage, 12),
+                    ExtraDataIndex = (uint)Marshal.ReadInt32(pMessage, 20),
+                    Data = MarshalDataArray(pMessage),
                 };
             }
             set
             {
                 if (index > Marshal.ReadInt32(pNumMsgs))
                 {
-                    //do something about index out of bounds
+                    throw new IndexOutOfRangeException("Index is greater than array bound");
                 }
-                IntPtr pData = (IntPtr)(index * CONST.J2534MESSAGESIZE + (int)pMessages + 24);
-                Marshal.WriteInt32(pData, -24, (int)value.ProtocolID);
-                Marshal.WriteInt32(pData, -20, (int)value.RxStatus);
-                Marshal.WriteInt32(pData, -16, (int)value.TxFlags);
-                Marshal.WriteInt32(pData, -12, (int)value.Timestamp);
-                Marshal.WriteInt32(pData, -8, value.Data.Length);
-                Marshal.WriteInt32(pData, -4, (int)value.ExtraDataIndex);
-                Marshal.Copy(value.Data, 0, pData, value.Data.Length);
+                IntPtr pMessage = IntPtr.Add(pMessages, index * CONST.J2534MESSAGESIZE);
+                Marshal.WriteInt32(pMessage, (int)value.ProtocolID);
+                Marshal.WriteInt32(pMessage, 4, (int)value.RxStatus);
+                Marshal.WriteInt32(pMessage, 8, (int)value.TxFlags);
+                Marshal.WriteInt32(pMessage, 12, (int)value.Timestamp);
+                Marshal.WriteInt32(pMessage, 16, value.Data.Length);
+                Marshal.WriteInt32(pMessage, 20, (int)value.ExtraDataIndex);
+                Marshal.Copy(value.Data, 0, IntPtr.Add(pMessage, 24), value.Data.Length);
             }
         }
 
@@ -130,9 +130,9 @@ namespace J2534
 
         private byte[] MarshalDataArray(IntPtr pData)
         {
-            int Length = Marshal.ReadInt32(pData, -8);
+            int Length = Marshal.ReadInt32(pData, 16);
             byte[] data = new byte[Length];
-            Marshal.Copy(pData, data, 0, Length);
+            Marshal.Copy(IntPtr.Add(pData, 24), data, 0, Length);
             return data;
         }
         // Public implementation of Dispose pattern callable by consumers.
@@ -178,39 +178,42 @@ namespace J2534
             this.Message = Message;
         }
 
-        public IntPtr Ptr
+        public static implicit operator J2534Message(J2534HeapMessage HeapMessage)
         {
-            get
+            return new J2534Message()
             {
-                return pMessage;
-            }
+                ProtocolID = (J2534PROTOCOL)Marshal.ReadInt32(HeapMessage.pMessage),
+                RxStatus = (J2534RXFLAG)Marshal.ReadInt32(HeapMessage.pMessage, 4),
+                TxFlags = (J2534TXFLAG)Marshal.ReadInt32(HeapMessage.pMessage, 8),
+                Timestamp = (uint)Marshal.ReadInt32(HeapMessage.pMessage, -12),
+                ExtraDataIndex = (uint)Marshal.ReadInt32(HeapMessage.pMessage, 20),
+                Data = MarshalDataArray(HeapMessage.pMessage),
+            };
         }
-
+        
         public J2534Message Message
         {
             get
             {
-                IntPtr pData = (IntPtr)(24 + (int)pMessage);
                 return new J2534Message()
                 {
-                    ProtocolID = (J2534PROTOCOL)Marshal.ReadInt32(pData, -24),
-                    RxStatus = (J2534RXFLAG)Marshal.ReadInt32(pData, -20),
-                    TxFlags = (J2534TXFLAG)Marshal.ReadInt32(pData, -16),
-                    Timestamp = (uint)Marshal.ReadInt32(pData, -12),
-                    ExtraDataIndex = (uint)Marshal.ReadInt32(pData, -4),
-                    Data = MarshalDataArray(pData),
+                    ProtocolID = (J2534PROTOCOL)Marshal.ReadInt32(pMessage),
+                    RxStatus = (J2534RXFLAG)Marshal.ReadInt32(pMessage, 4),
+                    TxFlags = (J2534TXFLAG)Marshal.ReadInt32(pMessage, 8),
+                    Timestamp = (uint)Marshal.ReadInt32(pMessage, -12),
+                    ExtraDataIndex = (uint)Marshal.ReadInt32(pMessage, 20),
+                    Data = MarshalDataArray(pMessage),
                 };
             }
             set
             {
-                IntPtr pData = (IntPtr)(24 + (int)pMessage);
-                Marshal.WriteInt32(pData, -24, (int)value.ProtocolID);
-                Marshal.WriteInt32(pData, -20, (int)value.RxStatus);
-                Marshal.WriteInt32(pData, -16, (int)value.TxFlags);
-                Marshal.WriteInt32(pData, -12, (int)value.Timestamp);
-                Marshal.WriteInt32(pData, -8, value.Data.Length);
-                Marshal.WriteInt32(pData, -4, (int)value.ExtraDataIndex);
-                Marshal.Copy(value.Data, 0, pData, value.Data.Length);
+                Marshal.WriteInt32(pMessage, (int)value.ProtocolID);
+                Marshal.WriteInt32(pMessage, 4, (int)value.RxStatus);
+                Marshal.WriteInt32(pMessage, 8, (int)value.TxFlags);
+                Marshal.WriteInt32(pMessage, 12, (int)value.Timestamp);
+                Marshal.WriteInt32(pMessage, 16, value.Data.Length);
+                Marshal.WriteInt32(pMessage, 20, (int)value.ExtraDataIndex);
+                Marshal.Copy(value.Data, 0, IntPtr.Add(pMessage, 24), value.Data.Length);
             }
         }
 
@@ -219,11 +222,11 @@ namespace J2534
             return HeapMessage.pMessage;
         }
 
-        private byte[] MarshalDataArray(IntPtr pData)
+        private static byte[] MarshalDataArray(IntPtr pData)
         {
-            int Length = Marshal.ReadInt32(pData, -8);
+            int Length = Marshal.ReadInt32(pData, 16);
             byte[] data = new byte[Length];
-            Marshal.Copy(pData, data, 0, Length);
+            Marshal.Copy(IntPtr.Add(pData, 24), data, 0, Length);
             return data;
         }
 
@@ -437,7 +440,7 @@ namespace J2534
         public HeapSConfigList(List<SConfig> ConfigItems)
         {
             //Create a blob big enough for 'ConfigItems' and two longs (NumOfItems and pItems)
-            IntPtr pSConfigArrayHeap = Marshal.AllocHGlobal(ConfigItems.Count * 8 + 8);
+            pSConfigArrayHeap = Marshal.AllocHGlobal(ConfigItems.Count * 8 + 8);
 
             //Write NumOfItems
             Marshal.WriteInt32(pSConfigArrayHeap, ConfigItems.Count);
@@ -492,11 +495,13 @@ namespace J2534
     public class HeapSByteArray:IDisposable
     {
         private IntPtr pSByteArray;
+        private int Length;
         private bool disposed;
 
         public HeapSByteArray(byte[] SByteArray)
         {
-            pSByteArray = Marshal.AllocHGlobal(SByteArray.Length + 8);
+            Length = SByteArray.Length;
+            pSByteArray = Marshal.AllocHGlobal(Length + 8);
 
             Marshal.WriteInt32(pSByteArray, SByteArray.Length);
             Marshal.WriteIntPtr(pSByteArray, 4, IntPtr.Add(pSByteArray, 8));
@@ -506,7 +511,9 @@ namespace J2534
         {
             get
             {
-                return Marshal.ReadByte(IntPtr.Add(pSByteArray, Index + 8));
+                if(Index < Length)
+                    return Marshal.ReadByte(IntPtr.Add(pSByteArray, Index + 8));
+                throw new IndexOutOfRangeException("Index is greater than array bound");
             }
         }
 
