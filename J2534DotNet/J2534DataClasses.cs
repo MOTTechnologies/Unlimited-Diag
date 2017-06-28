@@ -18,8 +18,106 @@ namespace J2534
         public DREWTECH_API DREWTECH_API { get; set; }
     }
 
+    internal class Seive
+    {
+        private object LOCK = new object();
+        private List<SeiveScreen> Screens = new List<SeiveScreen>();
+
+        public void Add(int Priority, Predicate<J2534Message> Predicate)
+        {
+            lock (LOCK)
+            {
+                Screens.Add(new SeiveScreen(Priority, Predicate));
+                Screens.Sort((S1, S2) => { return S1.Priority - S2.Priority; });
+            }
+        }
+
+        public void Remove(Predicate<J2534Message> ComparerAsKey)
+        {
+            lock (LOCK)
+                Screens.Remove(Screens.Find(screen => screen.Comparer == ComparerAsKey));
+        }
+
+        public void Extract(List<J2534Message> Messages)
+        {
+            Messages.ForEach(Message =>
+            {
+                lock(LOCK)
+                    foreach (SeiveScreen Screen in Screens)
+                    {
+                        if (Screen.Comparer(Message))
+                        {
+                            Screen.Messages.Add(Message);
+                            break;
+                        }
+                    }
+            });
+        }
+
+        public int Count(Predicate<J2534Message> ComparerAsKey)
+        {
+            lock (LOCK) //This will throw an exception if predicate is not found.  That is probably best.
+                return Screens.Find(Screen => Screen.Comparer == ComparerAsKey).Messages.Count;
+        }
+
+        public List<J2534Message> Withdraw(Predicate<J2534Message> ComparerAsKey, bool Remove)
+        {
+            lock (LOCK)
+            {
+                SeiveScreen Screen = Screens.Find(screen => screen.Comparer == ComparerAsKey);
+                if (Remove)
+                    Screens.Remove(Screen);
+                else
+                    Screens.Find(screen => screen.Comparer == ComparerAsKey).Messages = new List<J2534Message>();
+                return Screen.Messages;
+            }
+        }
+    }
+
+    internal class SeiveScreen
+    {
+        public int Priority { get; set; }
+        public List<J2534Message> Messages = new List<J2534Message>();
+        public Predicate<J2534Message> Comparer;
+        public SeiveScreen(int Priority, Predicate<J2534Message> Comparer)
+        {
+            this.Priority = Priority;
+            this.Comparer = Comparer;
+        }
+    }
+
+    public class GetMessageResults
+    {
+        public J2534ERR Status { get; set; }
+        public List<J2534Message> Messages;
+
+        public GetMessageResults()
+        {
+            Messages = new List<J2534Message>();
+        }
+
+        public GetMessageResults(J2534ERR Status)
+        {
+            Messages = new List<J2534Message>();
+            this.Status = Status;
+        }
+        public GetMessageResults(List<J2534Message> Messages, J2534ERR Status)
+        {
+            this.Status = Status;
+            this.Messages = Messages;
+        }
+    }
+
+    public class GetConfigResults
+    {
+        public J2534ERR Status { get; set; }
+        public int Value { get; set; }
+        public int Parameter { get; set; }
+
+    }
     internal class GetNextCarDAQResults
     {
+        public J2534ERR Status { get; set; }
         public bool Exists { get; set; }
         public string Name { get; set; }
         public string Version { get; set; }
@@ -37,14 +135,17 @@ namespace J2534
 
         public J2534Message()
         {
-
+            Data = Array.Empty<byte>();
         }
 
         public J2534Message(J2534PROTOCOL ProtocolID, J2534TXFLAG TxFlags, byte[] Data)
         {
             this.ProtocolID = ProtocolID;
             this.TxFlags = TxFlags;
-            this.Data = Data;
+            if (Data == null)
+                this.Data = Array.Empty<byte>();
+            else
+                this.Data = Data;
         }
     }
 
@@ -121,6 +222,14 @@ namespace J2534
             {
                 return pNumMsgs;
             }
+        }
+
+        public List<J2534Message> ToList()
+        {
+            List<J2534Message> return_list = new List<J2534Message>();
+            for (int i = 0; i < Length; i++)
+                return_list.Add(this[i]);
+            return return_list;
         }
 
         public static implicit operator IntPtr(J2534HeapMessageArray HeapMessageArray)
@@ -436,20 +545,52 @@ namespace J2534
     {
         private IntPtr pSConfigArrayHeap;
         private bool disposed;
+        private int count;
+
+        public HeapSConfigList(SConfig ConfigItem)
+        {
+            //Create a blob big enough for 'ConfigItems' and two longs (NumOfItems and pItems)
+            pSConfigArrayHeap = Marshal.AllocHGlobal(16);
+            Count = 1;  //Set count
+
+            //Write pItems.  To save complexity, the array immediately follows SConfigList.
+            Marshal.WriteIntPtr(pSConfigArrayHeap, 4, IntPtr.Add(pSConfigArrayHeap, 8));
+
+            //Write ConfigItem to the blob
+            Marshal.StructureToPtr<SConfig>(ConfigItem, IntPtr.Add(pSConfigArrayHeap, 8), false);
+        }
 
         public HeapSConfigList(List<SConfig> ConfigItems)
         {
             //Create a blob big enough for 'ConfigItems' and two longs (NumOfItems and pItems)
             pSConfigArrayHeap = Marshal.AllocHGlobal(ConfigItems.Count * 8 + 8);
+            Count = ConfigItems.Count;
 
-            //Write NumOfItems
-            Marshal.WriteInt32(pSConfigArrayHeap, ConfigItems.Count);
             //Write pItems.  To save complexity, the array immediately follows SConfigList.
             Marshal.WriteIntPtr(pSConfigArrayHeap, 4, IntPtr.Add(pSConfigArrayHeap, 8));
 
             //Write the array to the blob
             for(int i = 0, Offset = 8;i < ConfigItems.Count;i++, Offset += 8)
                 Marshal.StructureToPtr<SConfig>(ConfigItems[i], IntPtr.Add(pSConfigArrayHeap, Offset), false);
+        }
+
+        public int Count
+        {
+            get
+            {
+                return Marshal.ReadInt32(pSConfigArrayHeap);
+            }
+            private set //Count should only be set by the constructor after the Marshal Alloc
+            {
+                Marshal.WriteInt32(pSConfigArrayHeap, value);
+            }
+        }
+        public SConfig this[int Index]
+        {
+            get
+            {
+                    return Marshal.PtrToStructure<SConfig>(IntPtr.Add(pSConfigArrayHeap, (Index * 8 + 8)));
+            }
         }
 
         public static implicit operator IntPtr(HeapSConfigList SConfigList)
@@ -495,17 +636,34 @@ namespace J2534
     public class HeapSByteArray:IDisposable
     {
         private IntPtr pSByteArray;
-        private int Length;
         private bool disposed;
+
+        public HeapSByteArray(byte SingleByte)
+        {
+            pSByteArray = Marshal.AllocHGlobal(9);
+            Length = 1;
+            Marshal.WriteIntPtr(pSByteArray, 4, IntPtr.Add(pSByteArray, 8));
+            Marshal.WriteByte(IntPtr.Add(pSByteArray, 8), SingleByte);
+        }
 
         public HeapSByteArray(byte[] SByteArray)
         {
+            pSByteArray = Marshal.AllocHGlobal(SByteArray.Length + 8);
             Length = SByteArray.Length;
-            pSByteArray = Marshal.AllocHGlobal(Length + 8);
-
-            Marshal.WriteInt32(pSByteArray, SByteArray.Length);
             Marshal.WriteIntPtr(pSByteArray, 4, IntPtr.Add(pSByteArray, 8));
             Marshal.Copy(SByteArray, 0, IntPtr.Add(pSByteArray, 8), SByteArray.Length);
+        }
+
+        public int Length
+        {
+            get
+            {
+                return Marshal.ReadInt32(pSByteArray);
+            }
+            private set
+            {
+                Marshal.WriteInt32(pSByteArray, value);
+            }
         }
         public byte this[int Index]
         {

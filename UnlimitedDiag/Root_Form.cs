@@ -14,11 +14,10 @@ namespace UnlimitedDiag
         public Root_Form()
         {
             InitializeComponent();
-            //J2534Discovery.Test();
-            //J2534.LibrarySelectionForm a = new J2534.LibrarySelectionForm();
-            //a.ShowDialog();
 
             PhysicalDevices = J2534Discovery.OpenEverything();
+            List<J1979Session> S = SAEDiscovery.ConnectEverything(PhysicalDevices);
+
         }
 
         private void CmdDetectVehicleClick(object sender, EventArgs e)

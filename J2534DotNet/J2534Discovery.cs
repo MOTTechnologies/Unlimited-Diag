@@ -16,24 +16,6 @@ namespace J2534
             PhysicalDevices = new List<J2534PhysicalDevice>();
         }
 
-        static public void Test()
-        {
-            Librarys.Add(new J2534DLL("First_Dll_File.dll"));
-            Librarys.Add(new J2534DLL("Second_Dll_File.dll"));
-            Librarys.Add(new J2534DLL("Third_Dll_File.dll"));
-            PhysicalDevices.Add(new J2534PhysicalDevice(Librarys[0]));
-            PhysicalDevices.Add(new J2534PhysicalDevice(Librarys[0]));
-            PhysicalDevices.Add(new J2534PhysicalDevice(Librarys[0]));
-            PhysicalDevices.Add(new J2534PhysicalDevice(Librarys[1]));
-            PhysicalDevices.Add(new J2534PhysicalDevice(Librarys[1]));
-            PhysicalDevices.Add(new J2534PhysicalDevice(Librarys[1]));
-            PhysicalDevices.Add(new J2534PhysicalDevice(Librarys[2]));
-            PhysicalDevices.Add(new J2534PhysicalDevice(Librarys[2]));
-            PhysicalDevices.Add(new J2534PhysicalDevice(Librarys[2]));
-            
-
-        }
-
         static public List<J2534PhysicalDevice> OpenEverything()
         {            
             foreach (J2534DLL DLL in FindLibrarys())
@@ -46,19 +28,19 @@ namespace J2534
         static private void ConnectAllDevices(J2534DLL DLL)
         {
             //If the DLL successfully executes GetNextCarDAQ_RESET()
-            if (!DLL.GetNextCarDAQ_RESET())
+            if (DLL.GetNextCarDAQ_RESET() == J2534ERR.STATUS_NOERROR)
             {
-                GetNextCarDAQResults ThisDrewtechDevice = DLL.GetNextCarDAQ();
-                while (ThisDrewtechDevice.Exists)
+                GetNextCarDAQResults TargetDrewtechDevice = DLL.GetNextCarDAQ();
+                while (TargetDrewtechDevice.Exists)
                 {
-                    J2534PhysicalDevice ThisDevice = DLL.ConstructDevice(ThisDrewtechDevice);
+                    J2534PhysicalDevice ThisDevice = DLL.ConstructDevice(TargetDrewtechDevice);
                     if (ThisDevice.IsConnected) //This should always succeed.
                     {   //To avoid populating the list with duplicate devices due to disconnection
                         //Remove any unconnected devices that are attached to this library.
                         PhysicalDevices.RemoveAll(Listed => Listed.DeviceName == ThisDevice.DeviceName);
                         PhysicalDevices.Add(ThisDevice);
                     }
-                    ThisDrewtechDevice = DLL.GetNextCarDAQ();
+                    TargetDrewtechDevice = DLL.GetNextCarDAQ();
                 }
             }
             //If its not a drewtech library, then attempt to connect a device

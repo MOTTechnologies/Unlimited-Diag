@@ -63,6 +63,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="J2534DataClasses.cs" />
+    <Compile Include="J2534Exception.cs" />
     <Compile Include="J2534PhysicalDevice.cs" />
     <Compile Include="J253DLL.cs" />
     <Compile Include="Library_Selection_Form.cs">

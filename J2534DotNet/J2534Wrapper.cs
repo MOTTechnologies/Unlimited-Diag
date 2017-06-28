@@ -176,7 +176,7 @@ namespace J2534
                         if (DeviceID == 0)
                             return Connectv202(ProtocolID, ConnectFlags, ChannelID);
                         else
-                            return J2534ERR.ERR_INVALID_DEVICE_ID;
+                            return J2534ERR.INVALID_DEVICE_ID;
                     };
                 }
                 APISignature.SAE_API |= SAE_API.CONNECT;
@@ -247,7 +247,7 @@ namespace J2534
                         if (DeviceID == 0)   //Is this necessary?
                             return SetProgrammingVoltagev202(Pin, Voltage);
                         else
-                            return J2534ERR.ERR_INVALID_DEVICE_ID;
+                            return J2534ERR.INVALID_DEVICE_ID;
                     };
                 }
                 APISignature.SAE_API |= SAE_API.SETPROGRAMMINGVOLTAGE;
@@ -269,7 +269,7 @@ namespace J2534
                         if (DeviceID == 0)
                             return ReadVersionv202(pFirmwareVer, pDllVer, pAPIVer);
                         else
-                            return J2534ERR.ERR_INVALID_DEVICE_ID;
+                            return J2534ERR.INVALID_DEVICE_ID;
                     };
                 }
                 APISignature.SAE_API |= SAE_API.READVERSION;

@@ -1,14 +1,14 @@
 ﻿using System;
-using System.Runtime.InteropServices;
-using System.Collections.Generic;
-using System.Linq;
+using System.ComponentModel;
+
 namespace J2534
 {
     internal static class CONST
     {
         internal const bool SUCCESS = false;
         internal const bool FAILURE = true;
-        internal const int J2534MESSAGESIZE = 4152;
+        internal const int J2534MESSAGESIZE = 4152; //Max message length in bytes
+        internal const int HEAPMESSAGEBUFFERSIZE = 200; //Max number of messages that can be passed to/from the API in a single call
     }
     /// <summary>
     /// enum used to create predefined filters in the MessageFilter constructor.
@@ -159,33 +159,61 @@ namespace J2534
 
     public enum J2534ERR
     {
+        [Description("Function completed successfully.")]
         STATUS_NOERROR = 0x00,
-        ERR_NOT_SUPPORTED = 0x01,
-        ERR_INVALID_CHANNEL_ID = 0x02,
-        ERR_INVALID_PROTOCOL_ID = 0x03,
-        ERR_NULL_PARAMETER = 0x04,
-        ERR_INVALID_IOCTL_VALUE = 0x05,
-        ERR_INVALID_FLAGS = 0x06,
-        ERR_FAILED = 0x07,
-        ERR_DEVICE_NOT_CONNECTED = 0x08,
-        ERR_TIMEOUT = 0x09,
-        ERR_INVALID_MSG = 0x0A,
-        ERR_INVALID_TIME_INTERVAL = 0x0B,
-        ERR_EXCEEDED_LIMIT = 0x0C,
-        ERR_INVALID_MSG_ID = 0x0D,
-        ERR_DEVICE_IN_USE = 0x0E,
-        ERR_INVALID_IOCTL_ID = 0x0F,
-        ERR_BUFFER_EMPTY = 0x10,
-        ERR_BUFFER_FULL = 0x11,
-        ERR_BUFFER_OVERFLOW = 0x12,
-        ERR_PIN_INVALID = 0x13,
-        ERR_CHANNEL_IN_USE = 0x14,
-        ERR_MSG_PROTOCOL_ID = 0x15,
-        ERR_INVALID_FILTER_ID = 0x16,
-        ERR_NO_FLOW_CONTROL = 0x17,
-        ERR_NOT_UNIQUE = 0x18,
-        ERR_INVALID_BAUDRATE = 0x19,
-        ERR_INVALID_DEVICE_ID = 0x1A,
+        [Description("Function option is not supported.")]
+        NOT_SUPPORTED = 0x01,
+        [Description("Channel Identifier or handle was not recognized.")]
+        INVALID_CHANNEL_ID = 0x02,
+        [Description("Protocol identifier was not recognized.")]
+        INVALID_PROTOCOL_ID = 0x03,
+        [Description("NULL pointer presented as a function parameter address.")]
+        NULL_PARAMETER = 0x04,
+        [Description("IOCTL GET_CONFIG/SET_CONFIG parameter value is not recognized.")]
+        INVALID_IOCTL_VALUE = 0x05,
+        [Description("Flags bit field(s) contaln(s) an invalid value.")]
+        INVALID_FLAGS = 0x06,
+        [Description("Unspecified error, use PassThruGetLastError for obtaining error text string.")]
+        FAILED = 0x07,
+        [Description("The PassThru device is not connected to the PC.")]
+        DEVICE_NOT_CONNECTED = 0x08,
+        [Description("The PassThru device was unable to read the specified number of messages from the vehicle network within the specified time.")]
+        TIMEOUT = 0x09,
+        [Description("Message contains a min/max Length, ExtraData support or J1850PWM specific source address conflict violation.")]
+        INVALID_MSG = 0x0A,
+        [Description("The time interval value is outside the allowed range.")]
+        INVALID_TIME_INTERVAL = 0x0B,
+        [Description("The limit (ten) of filter/periodic messages has been exceed. for the protocol associated with the communications channel.")]
+        EXCEEDED_LIMIT = 0x0C,
+        [Description("The message identifier or handle was not recognized.")]
+        INVALID_MSG_ID = 0x0D,
+        [Description("The specified PassThru device is already in use.")]
+        DEVICE_IN_USE = 0x0E,
+        [Description("IOCTL identifier is not recognized.")]
+        INVALID_IOCTL_ID = 0x0F,
+        [Description("The PassThru device could not read any messages from the vehicie network.")]
+        BUFFER_EMPTY = 0x10,
+        [Description("The PassThru device could not queue any more transmit messages destined for the vehicle network.")]
+        BUFFER_FULL = 0x11,
+        [Description("The PassThru device experienced a buffer overflow and receive messages were lost.")]
+        BUFFER_OVERFLOW = 0x12,
+        [Description("An unknown pin number specified for the J1962 connector, or the resource is already in use.")]
+        PIN_INVALID = 0x13,
+        [Description("An existing communications channel is currently using the specified network protocol.")]
+        CHANNEL_IN_USE = 0x14,
+        [Description("The specified protocol type within the message structure is different from the protocol associated with the communications channel when it was opened.")]
+        MSG_PROTOCOL_ID = 0x15,
+        [Description("Filter identifier is not recognized.")]
+        INVALID_FILTER_ID = 0x16,
+        [Description("No ISO15765 flow control filter matches the header of the outgoing message.")]
+        NO_FLOW_CONTROL = 0x17,
+        [Description("An existing filter already matches this header or node identifier.")]
+        NOT_UNIQUE = 0x18,
+        [Description("Unable to honor requested baudrate within required tolerances.")]
+        INVALID_BAUDRATE = 0x19,
+        [Description("PassThru device identifier was not recognized.")]
+        INVALID_DEVICE_ID = 0x1A,
+        [Description("The API call was not mapped to a function in the PassThru DLL.")]
         FUNCTION_NOT_ASSIGNED = 0x7EADBEEF  //non-standard flag used by the wrapper to indicate no function assigned
     }
 
@@ -288,5 +316,4 @@ namespace J2534
         RECOVERFIRMWARE = 0x20,
         LOADFIRMWARE = 0x40
     }
-
 }

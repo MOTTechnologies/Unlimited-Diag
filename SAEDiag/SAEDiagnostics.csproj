@@ -41,7 +41,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MessageRouter.cs" />
-    <Compile Include="SAEHeaderClasses.cs" />
+    <Compile Include="ModuleData.cs" />
+    <Compile Include="SAEDiscovery.cs" />
     <Compile Include="SAEDefinitions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SAEDiag.cs" />

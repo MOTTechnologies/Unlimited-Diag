@@ -10,7 +10,9 @@ namespace J2534
         internal API_SIGNATURE API_Signature;
         internal bool IsLoaded;
         internal J2534APIWrapper API;
-        internal J2534ERR Status;
+        //internal J2534ERR Status;
+        internal object API_LOCK = new object();
+
         public string API_Support
         {
             get
@@ -67,7 +69,8 @@ namespace J2534
 
         internal bool Free()
         {
-            IsLoaded = API.FreeLibrary();   //Does this return a true or false????
+            lock (API_LOCK)
+                IsLoaded = API.FreeLibrary();   //Does this return a true or false????
             return IsLoaded;
         }
 
@@ -91,50 +94,77 @@ namespace J2534
             //API.GetNextDevice(pSDevice);
         }
 
-        internal bool GetNextCarDAQ_RESET()
+        internal J2534ERR GetNextCarDAQ_RESET()
         {
-            Status = (J2534ERR)API.GetNextCarDAQ(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
-            if (Status == J2534ERR.STATUS_NOERROR)
-                return CONST.SUCCESS;
-            return CONST.FAILURE;
+            J2534ERR Status;
+            lock(API_LOCK)
+                Status = (J2534ERR)API.GetNextCarDAQ(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+
+            return Status;
         }
 
         internal GetNextCarDAQResults GetNextCarDAQ()
         {
+            J2534ERR Status;
             IntPtr pName = Marshal.AllocHGlobal(4);
             IntPtr pAddr = Marshal.AllocHGlobal(4);
             IntPtr pVer = Marshal.AllocHGlobal(4);
 
-            Status = (J2534ERR)API.GetNextCarDAQ(pName, pVer, pAddr);
-
-            if (Status == J2534ERR.FUNCTION_NOT_ASSIGNED || Marshal.ReadIntPtr(pName) == IntPtr.Zero)
+            lock (API_LOCK)
             {
+                Status = (J2534ERR)API.GetNextCarDAQ(pName, pVer, pAddr);
+
+
+                if (Status == J2534ERR.FUNCTION_NOT_ASSIGNED || Marshal.ReadIntPtr(pName) == IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(pName);
+                    Marshal.FreeHGlobal(pVer);
+                    Marshal.FreeHGlobal(pAddr);
+                    return new GetNextCarDAQResults()
+                    {
+                        Exists = false,
+                    };
+                }
+                else if (Status != J2534ERR.STATUS_NOERROR)
+                {
+                    Marshal.FreeHGlobal(pName);
+                    Marshal.FreeHGlobal(pVer);
+                    Marshal.FreeHGlobal(pAddr);
+                    throw new J2534Exception(Status, GetLastError());
+                }
+
+                byte[] b = new byte[3];
+                Marshal.Copy(pVer, b, 0, 3);
+
+                GetNextCarDAQResults Result = new GetNextCarDAQResults()
+                {
+                    Exists = true,
+                    Name = Marshal.PtrToStringAnsi(Marshal.ReadIntPtr(pName)),
+                    Version = string.Format("{2}.{1}.{0}", b[0], b[1], b[2]),
+                    Address = Marshal.PtrToStringAnsi(Marshal.ReadIntPtr(pAddr))
+                };
+
                 Marshal.FreeHGlobal(pName);
-                Marshal.FreeHGlobal(pVer);
                 Marshal.FreeHGlobal(pAddr);
-                return new GetNextCarDAQResults()
-                { Exists = false };
+                Marshal.FreeHGlobal(pVer);
+
+                return Result;
             }
+        }
 
-            byte[] b = new byte[3];
-            Marshal.Copy(pVer, b, 0, 3);
-
-            GetNextCarDAQResults Result = new GetNextCarDAQResults()
+        public string GetLastError()
+        {
+            J2534ERR Status;
+            string status_string = null;
+            IntPtr pErrorDescription = Marshal.AllocHGlobal(80);
+            lock (API_LOCK)
             {
-                Exists = true,
-                Name = Marshal.PtrToStringAnsi(Marshal.ReadIntPtr(pName)),
-                Version = string.Format("{2}.{1}.{0}", b[0], b[1], b[2]),
-                Address = Marshal.PtrToStringAnsi(Marshal.ReadIntPtr(pAddr))
-            };
-
-            //if (!DrewtechDevices.Exists(CarDAQ => CarDAQ.Name == Result.Name))
-            //    DrewtechDevices.Add(Result);
-
-            Marshal.FreeHGlobal(pName);
-            Marshal.FreeHGlobal(pAddr);
-            Marshal.FreeHGlobal(pVer);
-
-            return Result;
+                Status = (J2534ERR)API.GetLastError(pErrorDescription);
+                if (Status == J2534ERR.STATUS_NOERROR)
+                    status_string = Marshal.PtrToStringAnsi(pErrorDescription);
+                Marshal.FreeHGlobal(pErrorDescription);
+            }
+            return status_string;
         }
     }
 }

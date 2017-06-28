@@ -14,14 +14,18 @@ namespace SAE
         public bool Ping(Channel channel)
         {
             //SAEMessage CANSAEMessage = new SAEMessage(new List<byte>{ 0x00, 0x00, 0x07, 0xE0 }, new List<byte> { 0x00, 0x00, 0x07, 0xE8});
+            OBDMessage Msg = new OBDMessage(new byte[] { 0x00, 0x00, 0x07, 0xE0, 0x01, 0x00 });
 
-           // channel.SendMessage(CANSAEMessage.Send(SAEModes.REQ_DIAG_DATA, 0x00));
-            for(int i = 0;i < 5; i++)
-            {
-                channel.GetMessage();
+            //channel.SendMessage(Msg);
+            //for(int i = 0;i < 5; i++)
+            //{
+            //    if (!channel.GetMessage())
+            //    {
+            //        J2534Message mESSAGE = channel.HeapMessageArray[0];
+            //    }
             //    if (CANSAEMessage.Receive(channel.RxMessages[0].Data))
-                    break;
-            }
+                   
+            //}
             //return !CANSAEMessage.Failure;
             return true;
         }
