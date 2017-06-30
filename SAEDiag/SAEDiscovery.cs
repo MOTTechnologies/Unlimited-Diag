@@ -9,10 +9,10 @@ namespace SAE
 {
     public class SAEDiscovery
     {
-        public static List<J1979Session> ConnectEverything(List<J2534PhysicalDevice> Devices)
+        public static List<J1979Session> ConnectEverything(List<J2534Device> Devices)
         {
             List<J1979Session> Sessions = new List<J1979Session>();
-            foreach(J2534PhysicalDevice Device in Devices)
+            foreach(J2534Device Device in Devices)
             {
                 foreach(Channel SAEChannel in new SAEProtocols(Device))
                 {

@@ -34,12 +34,13 @@ namespace SAE
         public bool Broadcast()
         {
             bool OBD_Module_Present = false;
+            GetMessageResults Results = session_channel.MessageTransaction(TxMessage, 200, TxMessage.RxComparer);
 
-            GetMessageResults Results = session_channel.MessageTransaction(TxMessage, 200, (msg =>
-            {
-                OBDMessage RxMessage = new OBDMessage(msg.Data);
-                return (RxMessage.SAEMode == SAEModes.REQ_DIAG_DATA_RESPONSE && RxMessage.PID == 0x00);
-            }));
+            //(msg =>
+            //{
+            //    OBDMessage RxMessage = new OBDMessage(msg.Data);
+            //    return (RxMessage.SAEMode == SAEModes.REQ_DIAG_DATA_RESPONSE && RxMessage.PID == 0x00);
+            //}));
 
             Results.Messages.ForEach(msg =>
             {

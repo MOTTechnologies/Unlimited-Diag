@@ -316,5 +316,19 @@ namespace SAE
         {
             return Message.RawMessage;
         }
+
+        public Predicate<J2534.J2534Message> RxComparer
+        {
+            get
+            {   //This works for J1979.  WIP
+                return (_J2534Message => 
+                {
+                    OBDMessage RxMessage = new OBDMessage(_J2534Message.Data);
+                    return (RxMessage.SourceAddress == TargetAddress && 
+                            RxMessage.SAEMode == (SAEModes)((int)SAEMode + 0x40) && 
+                            RxMessage.PID == PID);
+                });
+            }
+        }
     }
 }

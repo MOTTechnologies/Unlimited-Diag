@@ -16,11 +16,11 @@ namespace J2534
         {
             InitializeComponent();
             J2534TreeView.BeginUpdate();
-            foreach(J2534DLL Library in J2534Discovery.Librarys)
+            foreach(J2534Library Library in J2534Discovery.Librarys)
             {
                 TreeNode NewRootNode = new TreeNode(Library.FileName);
                 NewRootNode.Tag = Library;
-                foreach (J2534PhysicalDevice Device in J2534Discovery.PhysicalDevices.Where(Device => Device.Library == Library))
+                foreach (J2534Device Device in J2534Discovery.PhysicalDevices.Where(Device => Device.Library == Library))
                 {
                     TreeNode ChildNode = new TreeNode(Device.DeviceName);
                     ChildNode.Tag = Device;

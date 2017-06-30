@@ -10,7 +10,7 @@ namespace UnlimitedDiag
 {
     public partial class Root_Form : Form
     {
-        List<J2534PhysicalDevice> PhysicalDevices;
+        List<J2534Device> PhysicalDevices;
         public Root_Form()
         {
             InitializeComponent();

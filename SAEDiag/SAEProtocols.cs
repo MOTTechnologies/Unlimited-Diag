@@ -11,7 +11,7 @@ namespace SAE
 
     public class SAEProtocols: IEnumerator, IEnumerable
     {
-        private J2534PhysicalDevice device;
+        private J2534Device device;
         private const int num_of_protocols = 4; //This should be updated to test what protocols are supported
                                                 //and only enumerate those that are.
         private int protocol_index;
@@ -24,7 +24,7 @@ namespace SAE
             ISO9141
         }
 
-        public SAEProtocols(J2534PhysicalDevice Device)
+        public SAEProtocols(J2534Device Device)
         {
             protocol_index = -1;
             this.device = Device;

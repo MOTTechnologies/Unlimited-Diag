@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("J2534DotNet")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("J2534")]
+[assembly: AssemblyDescription("J2534 Library for .NET")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("J2534DotNet")]
+[assembly: AssemblyProduct("J2534")]
 [assembly: AssemblyCopyright("")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

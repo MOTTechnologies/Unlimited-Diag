@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using System.Collections.Generic;
 using System.Text;
+
 namespace J2534
 {
-    internal class J2534DLL
+    internal class J2534Library
     {
         internal string FileName;
         internal API_SIGNATURE API_Signature;
@@ -44,7 +44,7 @@ namespace J2534
             }
         }
 
-        internal J2534DLL(string FileName)
+        internal J2534Library(string FileName)
         {
             this.FileName = FileName;
             API = new J2534.J2534APIWrapper();
@@ -74,19 +74,19 @@ namespace J2534
             return IsLoaded;
         }
 
-        internal J2534PhysicalDevice ConstructDevice()
+        internal J2534Device ConstructDevice()
         {
-            return new J2534.J2534PhysicalDevice(this);
+            return new J2534.J2534Device(this);
         }
 
-        internal J2534PhysicalDevice ConstructDevice(string DeviceName)
+        internal J2534Device ConstructDevice(string DeviceName)
         {
-            return new J2534.J2534PhysicalDevice(this, DeviceName);
+            return new J2534.J2534Device(this, DeviceName);
         }
 
-        internal J2534PhysicalDevice ConstructDevice(GetNextCarDAQResults CarDAQ)
+        internal J2534Device ConstructDevice(GetNextCarDAQResults CarDAQ)
         {
-            return new J2534.J2534PhysicalDevice(this, CarDAQ);
+            return new J2534.J2534Device(this, CarDAQ);
         }
 
         internal void GetNextDevice()

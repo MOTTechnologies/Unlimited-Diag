@@ -8,8 +8,8 @@
     <ProjectGuid>{D99E0DE7-2F06-41E3-B33E-687E1B425A7F}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>J2534DotNet</RootNamespace>
-    <AssemblyName>J2534DotNet</AssemblyName>
+    <RootNamespace>J2534</RootNamespace>
+    <AssemblyName>J2534</AssemblyName>
     <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <FileUpgradeFlags>
@@ -62,10 +62,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="J2534DataClasses.cs" />
+    <Compile Include="DataClasses\API_SIGNATURE.cs" />
+    <Compile Include="DataClasses\HeapSByteArray.cs" />
+    <Compile Include="DataClasses\HeapSConfigArray.cs" />
+    <Compile Include="DataClasses\J2534HeapInt.cs" />
+    <Compile Include="DataClasses\J2534HeapMessage.cs" />
+    <Compile Include="DataClasses\J2534HeapMessageArray.cs" />
+    <Compile Include="DataClasses\J2534Message.cs" />
+    <Compile Include="DataClasses\MessageFilter.cs" />
+    <Compile Include="DataClasses\PeriodicMessage.cs" />
+    <Compile Include="DataClasses\ReturnResultsClasses.cs" />
+    <Compile Include="DataClasses\SieveAndFilterScreen.cs" />
     <Compile Include="J2534Exception.cs" />
-    <Compile Include="J2534PhysicalDevice.cs" />
-    <Compile Include="J253DLL.cs" />
+    <Compile Include="J2534Device.cs" />
+    <Compile Include="J2534Library.cs" />
     <Compile Include="Library_Selection_Form.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -74,7 +84,7 @@
     </Compile>
     <Compile Include="J2534Channel.cs" />
     <Compile Include="J2534Discovery.cs" />
-    <Compile Include="J2534Definitions.cs" />
+    <Compile Include="DataClasses\J2534Definitions.cs" />
     <Compile Include="J2534Wrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

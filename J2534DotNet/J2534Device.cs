@@ -3,10 +3,10 @@ using System.Runtime.InteropServices;
 
 namespace J2534
 {
-    public class J2534PhysicalDevice
+    public class J2534Device
     {
         internal int DeviceID;
-        internal J2534DLL Library;
+        internal J2534Library Library;
         public string FirmwareVersion;
         public string LibraryVersion;
         public string APIVersion;
@@ -15,20 +15,20 @@ namespace J2534
         public string DrewtechAddress;
         private bool ValidDevice;   //Flag used to determine if this device failed initial connection
 
-        internal J2534PhysicalDevice(J2534DLL Library)
+        internal J2534Device(J2534Library Library)
         {
             this.Library = Library;
             ConnectToDevice("");
         }
 
-        internal J2534PhysicalDevice(J2534DLL Library, string DeviceName)
+        internal J2534Device(J2534Library Library, string DeviceName)
         {
             this.Library = Library;
             this.DeviceName = DeviceName;
             ConnectToDevice(this.DeviceName);
         }
 
-        internal J2534PhysicalDevice(J2534DLL Library, GetNextCarDAQResults CarDAQ)
+        internal J2534Device(J2534Library Library, GetNextCarDAQResults CarDAQ)
         {
             this.Library = Library;
             this.DeviceName = CarDAQ.Name;

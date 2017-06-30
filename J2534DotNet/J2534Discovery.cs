@@ -7,25 +7,25 @@ namespace J2534
 {
     static public class J2534Discovery
     {
-        static internal List<J2534DLL> Librarys;
-        static internal List<J2534PhysicalDevice> PhysicalDevices;
+        static internal List<J2534Library> Librarys;
+        static internal List<J2534Device> PhysicalDevices;
 
         static J2534Discovery()
         {
-            Librarys = new List<J2534DLL>();
-            PhysicalDevices = new List<J2534PhysicalDevice>();
+            Librarys = new List<J2534Library>();
+            PhysicalDevices = new List<J2534Device>();
         }
 
-        static public List<J2534PhysicalDevice> OpenEverything()
+        static public List<J2534Device> OpenEverything()
         {            
-            foreach (J2534DLL DLL in FindLibrarys())
+            foreach (J2534Library DLL in FindLibrarys())
             {
                 ConnectAllDevices(DLL);
             }
             return PhysicalDevices;
         }
 
-        static private void ConnectAllDevices(J2534DLL DLL)
+        static private void ConnectAllDevices(J2534Library DLL)
         {
             //If the DLL successfully executes GetNextCarDAQ_RESET()
             if (DLL.GetNextCarDAQ_RESET() == J2534ERR.STATUS_NOERROR)
@@ -33,7 +33,7 @@ namespace J2534
                 GetNextCarDAQResults TargetDrewtechDevice = DLL.GetNextCarDAQ();
                 while (TargetDrewtechDevice.Exists)
                 {
-                    J2534PhysicalDevice ThisDevice = DLL.ConstructDevice(TargetDrewtechDevice);
+                    J2534Device ThisDevice = DLL.ConstructDevice(TargetDrewtechDevice);
                     if (ThisDevice.IsConnected) //This should always succeed.
                     {   //To avoid populating the list with duplicate devices due to disconnection
                         //Remove any unconnected devices that are attached to this library.
@@ -46,7 +46,7 @@ namespace J2534
             //If its not a drewtech library, then attempt to connect a device
             else
             {
-                J2534PhysicalDevice ThisDevice = DLL.ConstructDevice();
+                J2534Device ThisDevice = DLL.ConstructDevice();
                 if (ThisDevice.IsConnected)
                 {   //To avoid populating the list with duplicate devices due to disconnection
                     //Remove any unconnected devices that are attached to this library.
@@ -56,7 +56,7 @@ namespace J2534
             }
         }
 
-        static private List<J2534DLL> FindLibrarys()
+        static private List<J2534Library> FindLibrarys()
         {
             List<string> DllFiles = new List<string>();
 
@@ -70,7 +70,7 @@ namespace J2534
 
             foreach (string DllFile in DllFiles)
             {
-                J2534DLL ThisLibrary = new J2534DLL(DllFile);
+                J2534Library ThisLibrary = new J2534Library(DllFile);
                 if (ThisLibrary.IsLoaded && !Librarys.Exists(Listed => Listed.FileName == ThisLibrary.FileName))
                     Librarys.Add(ThisLibrary);
             }
@@ -90,8 +90,8 @@ namespace J2534
                 if (RootKey == null)
                     return Entries;
             }
-            string[] DeviceEntries = RootKey.GetSubKeyNames();
-            foreach (string Entry in DeviceEntries)
+            string[] RegistryEntries = RootKey.GetSubKeyNames();
+            foreach (string Entry in RegistryEntries)
             {
                 RegistryKey deviceKey = RootKey.OpenSubKey(Entry);
                 if (deviceKey == null)
