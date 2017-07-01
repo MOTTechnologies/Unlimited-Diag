@@ -28,7 +28,7 @@ namespace SAE
         public bool J1850_k_bit { get; set; }   //1 = IFR not allowed
         public bool J1850_y_bit { get; set; }   //1 = Physical addressing
         public int J1850_zz { get; set; }  //message type/single byte header address
-        public SAEModes SAEMode { get; set; }
+        public SAEModeData SAEMode { get; set; }
         public byte PID { get; set; }
         public byte[] Data { get; set; }
         public SAE_responses SAEResponse { get; private set; }
@@ -93,7 +93,7 @@ namespace SAE
             {
                 source_address = value;
                 if(Network == SAE_NETWORK.ISO15765)
-                    target_address = source_address - 0x08;
+                    target_address = source_address | 0xF7;
             }
         }
 
@@ -104,7 +104,7 @@ namespace SAE
             {
                 target_address = value;
                 if (Network == SAE_NETWORK.ISO15765)
-                    source_address = target_address + 0x08;
+                    source_address = target_address & 0x08;
             }
         }
 
@@ -251,10 +251,10 @@ namespace SAE
         {
             get
             {
-                if (ModeIsJ1979())
-                    return (new byte[2] { (byte)SAEMode, (byte)PID }).Concat(Data).ToArray();
+                if (SAEMode.IsJ1979)
+                    return (new byte[2] { SAEMode, (byte)PID }).Concat(Data).ToArray();
                 else
-                    return (new byte[1] { (byte)SAEMode }).Concat(Data).ToArray();
+                    return (new byte[1] { SAEMode }).Concat(Data).ToArray();
             }
             set
             {
@@ -263,7 +263,8 @@ namespace SAE
                     IsValid = false;
                     return;
                 }
-                SAEMode = Enum.IsDefined(typeof(SAEModes), value[0]) ? (SAEModes)value[0] : SAEModes.UNKNOWN_MODE;
+                SAEMode = value[0];
+
                 if (SAEMode == SAEModes.GENERAL_RESPONSE)
                 {
                     switch (value.Length)
@@ -288,7 +289,7 @@ namespace SAE
                             break;
                     }
                 }
-                else if (ModeIsJ1979())
+                else if (SAEMode.IsJ1979)
                 {
                     if(value.Length < 3)
                     {
@@ -306,12 +307,6 @@ namespace SAE
             }
         }
 
-        private bool ModeIsJ1979()
-        {
-            //True when SAEMode is 0-0x10 or 0x40-0x50
-            return ((0x00 < (int)SAEMode && (int)SAEMode < 0x10) || (0x40 < (int)SAEMode && (int)SAEMode < 0x50));
-        }
-
         public static implicit operator byte[](OBDMessage Message)
         {
             return Message.RawMessage;
@@ -320,14 +315,28 @@ namespace SAE
         public Predicate<J2534.J2534Message> RxComparer
         {
             get
-            {   //This works for J1979.  WIP
-                return (_J2534Message => 
+            {
+                if (SAEMode.IsJ1979)
                 {
-                    OBDMessage RxMessage = new OBDMessage(_J2534Message.Data);
-                    return (RxMessage.SourceAddress == TargetAddress && 
-                            RxMessage.SAEMode == (SAEModes)((int)SAEMode + 0x40) && 
-                            RxMessage.PID == PID);
-                });
+                    return (_J2534Message =>
+                    {
+                        OBDMessage RxMessage = new OBDMessage(_J2534Message.Data);
+                        return (RxMessage.SourceAddress == TargetAddress &&
+                                RxMessage.SAEMode.BaseMode == SAEMode &&
+                                RxMessage.SAEMode.IsResponse &&
+                                RxMessage.PID == PID);
+                    });
+                }
+                else
+                {
+                    return (_J2534Message =>
+                    {
+                        OBDMessage RxMessage = new OBDMessage(_J2534Message.Data);
+                        return (RxMessage.SourceAddress == TargetAddress &&
+                                RxMessage.SAEMode.BaseMode == SAEMode &&
+                                RxMessage.SAEMode.IsResponse);
+                    });
+                }
             }
         }
     }

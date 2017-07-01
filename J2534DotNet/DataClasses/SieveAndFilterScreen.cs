@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace J2534
 {
+    //The Sieve class is a filter used to validate incomming messages and distribute them to the appropiate
+    //Calling thread.  The concept is a Sieve with multiple filter screens.  Each screen catches different
+    //messages.  Whatever isn't caught in a screen is discarded.
     internal class Sieve
     {
         private object LOCK = new object();

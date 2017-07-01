@@ -67,6 +67,24 @@ namespace J2534
             }
         }
 
+        public GetMessageResults MessageTransaction(byte[] TxMessage, int NumOfRxMsgs, Predicate<J2534Message> Comparer)
+        {
+            MessageSieve.AddScreen(10, Comparer);
+            J2534ERR Status = SendMessage(TxMessage);
+            if (Status == J2534ERR.STATUS_NOERROR)
+                return GetMessages(NumOfRxMsgs, DefaultRxTimeout, Comparer, true);
+            throw new J2534Exception(Status, Device.Library.GetLastError());
+        }
+
+        public GetMessageResults MessageTransaction(List<J2534Message> TxMessages, int NumOfRxMsgs, Predicate<J2534Message> Comparer)
+        {
+            MessageSieve.AddScreen(10, Comparer);
+            J2534ERR Status = SendMessages(TxMessages);
+            if (Status == J2534ERR.STATUS_NOERROR)
+                return GetMessages(NumOfRxMsgs, DefaultRxTimeout, Comparer, true);
+            throw new J2534Exception(Status, Device.Library.GetLastError());
+        }
+
         public GetMessageResults GetMessage()
         {
             return GetMessages(1, DefaultRxTimeout);
@@ -102,19 +120,6 @@ namespace J2534
             }
             return Results;
         }
-        public GetMessageResults MessageTransaction(byte [] TxMessage, int NumOfRxMsgs, Predicate<J2534Message> Comparer)
-        {
-            return MessageTransaction(new List<J2534Message>() { new J2534Message(ProtocolID, DefaultTxFlag, TxMessage) }, NumOfRxMsgs, Comparer);
-        }
-
-        public GetMessageResults MessageTransaction(List<J2534Message> TxMessages, int NumOfRxMsgs, Predicate<J2534Message> Comparer)
-        {
-            MessageSieve.AddScreen(10, Comparer);
-            J2534ERR Status = SendMessages(TxMessages);
-            if( Status == J2534ERR.STATUS_NOERROR)
-                return GetMessages(NumOfRxMsgs, DefaultRxTimeout, Comparer, true);
-            throw new J2534Exception(Status, Device.Library.GetLastError());
-        }
 
         //Thread safety in this method assumes that each thread will have unique comparers
         public GetMessageResults GetMessages(int NumMsgs, int Timeout, Predicate<J2534Message> ComparerAsKey, bool Remove)
@@ -127,7 +132,6 @@ namespace J2534
             {
                 GetMessageResults RxMessages = GetMessages(CONST.HEAPMESSAGEBUFFERSIZE, 0);
                 if (RxMessages.Status == J2534ERR.STATUS_NOERROR ||
-                    RxMessages.Status == J2534ERR.TIMEOUT ||
                     RxMessages.Status == J2534ERR.BUFFER_EMPTY)
                     MessageSieve.ExtractFrom(RxMessages.Messages);
                 else

@@ -3,12 +3,13 @@ using System.ComponentModel;
 
 namespace J2534
 {
-    internal static class CONST
+    public static class CONST
     {
         internal const bool SUCCESS = false;
         internal const bool FAILURE = true;
         internal const int J2534MESSAGESIZE = 4152; //Max message length in bytes
         internal const int HEAPMESSAGEBUFFERSIZE = 200; //Max number of messages that can be passed to/from the API in a single call
+        public static int MAX_MESSAGES { get { return HEAPMESSAGEBUFFERSIZE; } }
     }
     /// <summary>
     /// enum used to create predefined filters in the MessageFilter constructor.

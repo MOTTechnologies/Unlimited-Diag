@@ -34,13 +34,12 @@ namespace SAE
         public bool Broadcast()
         {
             bool OBD_Module_Present = false;
-            GetMessageResults Results = session_channel.MessageTransaction(TxMessage, 200, TxMessage.RxComparer);
-
-            //(msg =>
-            //{
-            //    OBDMessage RxMessage = new OBDMessage(msg.Data);
-            //    return (RxMessage.SAEMode == SAEModes.REQ_DIAG_DATA_RESPONSE && RxMessage.PID == 0x00);
-            //}));
+            GetMessageResults Results = session_channel.MessageTransaction(TxMessage, 200,
+            new Predicate<J2534Message>(msg =>
+            {
+                OBDMessage RxMessage = new OBDMessage(msg.Data);
+                return (RxMessage.SAEMode == SAEModes.REQ_DIAG_DATA_RESPONSE && RxMessage.PID == 0x00);
+            }));
 
             Results.Messages.ForEach(msg =>
             {
@@ -53,20 +52,34 @@ namespace SAE
                     OBDModuleList.Add(Module);
                 }
             });
+            OBDModuleList.ForEach(module => { ValidatePIDS(module); });
             return OBD_Module_Present;
         }
 
         private void ValidatePIDS(ModuleData Module)
         {
-            if(Module.ValidatedPIDS.Where(p => p.Number == 32).Any())
+            GetMessageResults Results;
+            int pid_window = 0x20;
+            do
             {
-                TxMessage.SAEMode = SAEModes.REQ_DIAG_DATA;
-                TxMessage.PID = 0x20;
+                if (Module.ValidatedPIDS.Where(pid => pid.Number == pid_window).Any())
+                {
+                    TxMessage.SAEMode = SAEModes.REQ_DIAG_DATA;
+                    TxMessage.PID = 0x20;
+                    Results = session_channel.MessageTransaction(TxMessage, 1, TxMessage.RxComparer);
+                    Module.PID_Validation_Bytes((byte)pid_window, Results.Messages[0].Data);
 
-                session_channel.SendMessage(TxMessage);
-                session_channel.GetMessage();
-            }
+                    if (pid_window < 0xD0)
+                        pid_window += 0x20;
+                    else
+                        break;
+                }
+                else
+                    break;
+            } while(true);
+
         }
+
         private int tool_address
         {
             get { return _tool_address; }
