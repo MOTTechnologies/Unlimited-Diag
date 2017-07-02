@@ -40,8 +40,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MessageRouter.cs" />
     <Compile Include="ModuleData.cs" />
+    <Compile Include="SAEChannelFactory.cs" />
     <Compile Include="SAEDiscovery.cs" />
     <Compile Include="SAEDefinitions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -52,7 +52,7 @@
     <Compile Include="SAESession.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\J2534DotNet\J2534.csproj">
+    <ProjectReference Include="..\J2534\J2534.csproj">
       <Project>{d99e0de7-2f06-41e3-b33e-687e1b425a7f}</Project>
       <Name>J2534</Name>
     </ProjectReference>

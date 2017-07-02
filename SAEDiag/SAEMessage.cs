@@ -28,23 +28,27 @@ namespace SAE
         public bool J1850_k_bit { get; set; }   //1 = IFR not allowed
         public bool J1850_y_bit { get; set; }   //1 = Physical addressing
         public int J1850_zz { get; set; }  //message type/single byte header address
-        public SAEModeData SAEMode { get; set; }
+        public SAEModeData SAEMode;
         public byte PID { get; set; }
-        public byte[] Data { get; set; }
+        public byte[] SAEData { get; set; }
         public SAE_responses SAEResponse { get; private set; }
         public OBD_PARSE_ERROR Error_Code { get; private set; }
         public bool IsValid { get; private set; }
 
-        public OBDMessage()
+        public OBDMessage(J2534.J2534PROTOCOL Protocol)
         {
-            Data = Array.Empty<byte>();
+            SAEData = Array.Empty<byte>();
+            SAEMode = new SAEModeData();
+            this.Protocol = Protocol;
             raw_message = RawMessage;
             IsValid = true;
         }
 
-        public OBDMessage(byte[] RawMessage)
+        public OBDMessage(byte[] RawMessage, J2534.J2534PROTOCOL Protocol)
         {
-            Data = Array.Empty<byte>();
+            SAEData = Array.Empty<byte>();
+            SAEMode = new SAEModeData();
+            this.Protocol = Protocol;
             this.RawMessage = RawMessage;
         }
 
@@ -85,15 +89,17 @@ namespace SAE
         }
         public int SourceAddress
         {
-            get
-            {
-                return source_address;
-            }
+            get { return source_address; }
             set
             {
                 source_address = value;
                 if(Network == SAE_NETWORK.ISO15765)
-                    target_address = source_address | 0xF7;
+                {
+                    if ((source_address & 0x08) == 0x08)
+                        target_address = source_address & 0x7F7;
+                    else
+                        target_address = source_address | 0x08;
+                }
             }
         }
 
@@ -104,7 +110,12 @@ namespace SAE
             {
                 target_address = value;
                 if (Network == SAE_NETWORK.ISO15765)
-                    source_address = target_address & 0x08;
+                {
+                    if ((target_address & 0x08) == 0x08)
+                        source_address = target_address & 0x7F7;
+                    else
+                        source_address = target_address | 0x08;
+                }
             }
         }
 
@@ -168,18 +179,9 @@ namespace SAE
                         Error_Code = OBD_PARSE_ERROR.CAN_MESSAGE_INSUFFICIENT_BYTES;
                         break;
                     }
-                    //This message is a module2tool message
-                    if ((raw_message[3] & 0x08) == 0x08)
-                    {
-                        source_address = (raw_message[2] << 8) + raw_message[3];
-                        target_address = source_address - 0x08;
-                    }
-                    //This message is a tool2module message
-                    else
-                    {
-                        target_address = (raw_message[2] << 8) + raw_message[3];
-                        source_address = target_address + 0x08;
-                    }
+
+                    TargetAddress = (raw_message[2] << 8) + raw_message[3];
+
                     sae_message = raw_message.Skip(4).ToArray();
                     break;
                 case SAE_NETWORK.J1850:
@@ -252,9 +254,9 @@ namespace SAE
             get
             {
                 if (SAEMode.IsJ1979)
-                    return (new byte[2] { SAEMode, (byte)PID }).Concat(Data).ToArray();
+                    return (new byte[2] { SAEMode, (byte)PID }).Concat(SAEData).ToArray();
                 else
-                    return (new byte[1] { SAEMode }).Concat(Data).ToArray();
+                    return (new byte[1] { SAEMode }).Concat(SAEData).ToArray();
             }
             set
             {
@@ -271,10 +273,10 @@ namespace SAE
                     {
                         case 1:
                             SAEResponse = SAE_responses.NONE;
-                            Data = Array.Empty<byte>();
+                            SAEData = Array.Empty<byte>();
                             break;
                         case 2:
-                            Data = Array.Empty<byte>();
+                            SAEData = Array.Empty<byte>();
                             SAEResponse = Enum.IsDefined(typeof(SAE_responses), (int)value.Last()) ? (SAE_responses)value.Last() : SAE_responses.MANUFACTURER_SPECIFIC;
                             break;
                         //case 3:
@@ -284,7 +286,7 @@ namespace SAE
                         //    break;
                         default:
                             //SAEMode = Enum.IsDefined(typeof(SAEModes), (value[1] + 0x40)) ? (SAEModes)(value[1] + 0x40) : SAEModes.UNKNOWN_MODE;
-                            Data = value.Skip(1).Take(value.Length - 2).ToArray();
+                            SAEData = value.Skip(1).Take(value.Length - 2).ToArray();
                             SAEResponse = Enum.IsDefined(typeof(SAE_responses), (int)value.Last()) ? (SAE_responses)value.Last() : SAE_responses.MANUFACTURER_SPECIFIC;
                             break;
                     }
@@ -297,12 +299,12 @@ namespace SAE
                         return;
                     }
                     PID = value[1];
-                    Data = value.Skip(2).ToArray();
+                    SAEData = value.Skip(2).ToArray();
                 }
                 else
                 {
                     SAEResponse = Enum.IsDefined(typeof(SAE_responses), value.Last()) ? (SAE_responses)value.Last() : SAE_responses.MANUFACTURER_SPECIFIC;
-                    Data = value.Skip(1).ToArray();
+                    SAEData = value.Skip(1).ToArray();
                 }
             }
         }
@@ -312,7 +314,7 @@ namespace SAE
             return Message.RawMessage;
         }
 
-        public Predicate<J2534.J2534Message> RxComparer
+        public Predicate<J2534.J2534Message> DefaultRxComparer
         {
             get
             {
@@ -320,8 +322,8 @@ namespace SAE
                 {
                     return (_J2534Message =>
                     {
-                        OBDMessage RxMessage = new OBDMessage(_J2534Message.Data);
-                        return (RxMessage.SourceAddress == TargetAddress &&
+                        OBDMessage RxMessage = new OBDMessage(_J2534Message.Data, J2534.J2534PROTOCOL.CAN) { Network = this.Network };
+                        return (RxMessage.TargetAddress == SourceAddress &&
                                 RxMessage.SAEMode.BaseMode == SAEMode &&
                                 RxMessage.SAEMode.IsResponse &&
                                 RxMessage.PID == PID);
@@ -331,8 +333,8 @@ namespace SAE
                 {
                     return (_J2534Message =>
                     {
-                        OBDMessage RxMessage = new OBDMessage(_J2534Message.Data);
-                        return (RxMessage.SourceAddress == TargetAddress &&
+                        OBDMessage RxMessage = new OBDMessage(_J2534Message.Data, J2534.J2534PROTOCOL.CAN) { Network = this.Network };
+                        return (RxMessage.TargetAddress == SourceAddress &&
                                 RxMessage.SAEMode.BaseMode == SAEMode &&
                                 RxMessage.SAEMode.IsResponse);
                     });

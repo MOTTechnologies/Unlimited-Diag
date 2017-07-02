@@ -3,13 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "J2534", "J2534DotNet\J2534.csproj", "{D99E0DE7-2F06-41E3-B33E-687E1B425A7F}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{38CF5278-E21B-42AF-90D3-DCDE02C5A0F5}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unlimited Diag", "UnlimitedDiag\Unlimited Diag.csproj", "{BAED744D-B115-4EB2-8431-1F187C929C05}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SAEDiagnostics", "SAEDiag\SAEDiagnostics.csproj", "{DBA67A7E-B4C3-444E-A67A-8D9EA1037343}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "J2534", "J2534\J2534.csproj", "{D99E0DE7-2F06-41E3-B33E-687E1B425A7F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +15,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{D99E0DE7-2F06-41E3-B33E-687E1B425A7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D99E0DE7-2F06-41E3-B33E-687E1B425A7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D99E0DE7-2F06-41E3-B33E-687E1B425A7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D99E0DE7-2F06-41E3-B33E-687E1B425A7F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{BAED744D-B115-4EB2-8431-1F187C929C05}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BAED744D-B115-4EB2-8431-1F187C929C05}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BAED744D-B115-4EB2-8431-1F187C929C05}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -29,6 +23,10 @@ Global
 		{DBA67A7E-B4C3-444E-A67A-8D9EA1037343}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DBA67A7E-B4C3-444E-A67A-8D9EA1037343}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DBA67A7E-B4C3-444E-A67A-8D9EA1037343}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D99E0DE7-2F06-41E3-B33E-687E1B425A7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D99E0DE7-2F06-41E3-B33E-687E1B425A7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D99E0DE7-2F06-41E3-B33E-687E1B425A7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D99E0DE7-2F06-41E3-B33E-687E1B425A7F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

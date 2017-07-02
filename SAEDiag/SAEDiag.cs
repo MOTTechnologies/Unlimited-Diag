@@ -14,7 +14,7 @@ namespace SAE
         public bool Ping(Channel channel)
         {
             //SAEMessage CANSAEMessage = new SAEMessage(new List<byte>{ 0x00, 0x00, 0x07, 0xE0 }, new List<byte> { 0x00, 0x00, 0x07, 0xE8});
-            OBDMessage Msg = new OBDMessage(new byte[] { 0x00, 0x00, 0x07, 0xE0, 0x01, 0x00 });
+            OBDMessage Msg = new OBDMessage(new byte[] { 0x00, 0x00, 0x07, 0xE0, 0x01, 0x00 }, channel.ProtocolID);
 
             //channel.SendMessage(Msg);
             //for(int i = 0;i < 5; i++)

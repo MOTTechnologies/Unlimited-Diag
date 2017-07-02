@@ -22,11 +22,11 @@ namespace SAE
 
         public J1979Session(Channel SessionChannel, bool Init)
         {
-            TxMessage = new OBDMessage();
-            RxMessage = new OBDMessage();
+            session_channel = SessionChannel;
+            TxMessage = new OBDMessage(session_channel.ProtocolID);
+            RxMessage = new OBDMessage(session_channel.ProtocolID);
             OBDModuleList = new List<ModuleData>();
 
-            session_channel = SessionChannel;
             if(Init)
                 set_default_session_parameters();
         }
@@ -34,24 +34,31 @@ namespace SAE
         public bool Broadcast()
         {
             bool OBD_Module_Present = false;
+            //Send a broadcast message and return the responses in Results
             GetMessageResults Results = session_channel.MessageTransaction(TxMessage, 200,
             new Predicate<J2534Message>(msg =>
             {
-                OBDMessage RxMessage = new OBDMessage(msg.Data);
+                RxMessage.RawMessage = msg.Data;
                 return (RxMessage.SAEMode == SAEModes.REQ_DIAG_DATA_RESPONSE && RxMessage.PID == 0x00);
             }));
 
             Results.Messages.ForEach(msg =>
             {
-                OBDMessage RxMessage = new OBDMessage(msg.Data);
                 OBD_Module_Present = true;
-                if (!OBDModuleList.Where(m => m.Address == RxMessage.TargetAddress).Any())
+                RxMessage.RawMessage = msg.Data;
+                //Duplicates are probably not a serious concern as long as the callign method
+                //Is well designed.  The check here is for robustness and a lack of concern for
+                //speed here.
+                //Check for duplicates, and do not proceed if a module has already been entered
+                //That has a matching address.
+                if (!OBDModuleList.Where(module => module.Address == RxMessage.TargetAddress).Any())
                 {
-                    ModuleData Module = new ModuleData(RxMessage.TargetAddress);
-                    Module.PID_Validation_Bytes(0, RxMessage.Data);
+                    ModuleData Module = new ModuleData(RxMessage.SourceAddress);
+                    Module.Parse_PID_Validation_Bytes(0, RxMessage.SAEData);
                     OBDModuleList.Add(Module);
                 }
             });
+            //Finish validating PIDS for each module detected
             OBDModuleList.ForEach(module => { ValidatePIDS(module); });
             return OBD_Module_Present;
         }
@@ -59,25 +66,21 @@ namespace SAE
         private void ValidatePIDS(ModuleData Module)
         {
             GetMessageResults Results;
-            int pid_window = 0x20;
-            do
+            for(byte PID = 0x20;PID < 0xD0;PID += 0x20)
             {
-                if (Module.ValidatedPIDS.Where(pid => pid.Number == pid_window).Any())
+                //If the next PID window is supported, then request it
+                if (Module.ValidatedPIDS.Last().Number == PID)
                 {
                     TxMessage.SAEMode = SAEModes.REQ_DIAG_DATA;
-                    TxMessage.PID = 0x20;
-                    Results = session_channel.MessageTransaction(TxMessage, 1, TxMessage.RxComparer);
-                    Module.PID_Validation_Bytes((byte)pid_window, Results.Messages[0].Data);
-
-                    if (pid_window < 0xD0)
-                        pid_window += 0x20;
-                    else
-                        break;
+                    TxMessage.PID = PID;
+                    TxMessage.TargetAddress = Module.Address;
+                    Results = session_channel.MessageTransaction(TxMessage, 1, TxMessage.DefaultRxComparer);
+                    if(Results.Status == J2534ERR.STATUS_NOERROR)
+                        Module.Parse_PID_Validation_Bytes(PID, Results.Messages[0].Data);
                 }
                 else
-                    break;
-            } while(true);
-
+                    break;                
+            }
         }
 
         private int tool_address
@@ -99,10 +102,12 @@ namespace SAE
                     break;
                 case J2534.J2534PROTOCOL.J1850PWM:
                     TxMessage.J1850_byte0 = 0x61;
+                    network = SAE_NETWORK.J1850;
                     break;
                 case J2534.J2534PROTOCOL.J1850VPW:
                 case J2534.J2534PROTOCOL.ISO9141:
                     TxMessage.J1850_byte0 = 0x68;
+                    network = SAE_NETWORK.J1850;
                     break;
                 case J2534.J2534PROTOCOL.ISO14230:
                     network = SAE_NETWORK.J1850;

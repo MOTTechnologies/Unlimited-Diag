@@ -18,7 +18,7 @@ namespace SAE
             ValidatedPIDS = new List<PID>();
         }
 
-        public void PID_Validation_Bytes(byte Range, byte[] bytes)
+        public void Parse_PID_Validation_Bytes(byte Range, byte[] bytes)
         {
             int validation_bits = bytes[0] << 24;
             validation_bits += bytes[1] << 16;
