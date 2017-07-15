@@ -1,5 +1,6 @@
 # Unlimited-Diag
 J2534 Diagnostics and functionality, work in progress PRE-ALPHA
+
 Unlimited Diag is slated to be an extensive collection of OEM automotive diagnostic and reprogramming functions.  Additoinally, I want to implement a powerful network analyzer as well for reverse engineering OBD traffic.  The foundation for this is a robust and useful J2534 .Net library.
 
 At this point, the J2534 library is still evolving and improving, but is very usable in its current form.  I would be interested to hear from people that have found it useful or would like to contribute to the project.
