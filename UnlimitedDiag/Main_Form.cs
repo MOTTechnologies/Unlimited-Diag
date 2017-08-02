@@ -8,10 +8,10 @@ using System.Runtime.InteropServices;
 
 namespace UnlimitedDiag
 {
-    public partial class Root_Form : Form
+    public partial class Main_Form : Form
     {
         List<J2534Device> PhysicalDevices;
-        public Root_Form()
+        public Main_Form()
         {
             InitializeComponent();
 

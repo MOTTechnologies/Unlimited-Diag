@@ -13,7 +13,7 @@ namespace UnlimitedDiag
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Root_Form());
+            Application.Run(new Main_Form());
         }
     }
 }

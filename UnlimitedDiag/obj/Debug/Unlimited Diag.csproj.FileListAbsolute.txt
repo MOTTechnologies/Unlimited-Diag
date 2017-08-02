@@ -14,9 +14,9 @@ C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\Unlimit
 C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\UnlimitedDiag\bin\Debug\Unlimited-Diag.pdb
 C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\UnlimitedDiag\obj\Debug\Unlimited Diag.csprojResolveAssemblyReference.cache
 C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\UnlimitedDiag\obj\Debug\Unlimited Diag.csproj.GenerateResource.Cache
-C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\UnlimitedDiag\obj\Debug\UnlimitedDiag.Root_Form.resources
 C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\UnlimitedDiag\bin\Debug\Unlimited-Diag.exe.config
 C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\UnlimitedDiag\bin\Debug\SAEDiagnostics.dll
 C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\UnlimitedDiag\bin\Debug\SAEDiagnostics.pdb
 C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\UnlimitedDiag\bin\Debug\J2534.dll
 C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\UnlimitedDiag\bin\Debug\J2534.pdb
+C:\Users\panasonic\Documents\EFI-Unlimited files\Projects\Unlimited-Diag\UnlimitedDiag\obj\Debug\UnlimitedDiag.Main_Form.resources

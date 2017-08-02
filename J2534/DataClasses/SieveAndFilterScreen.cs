@@ -20,20 +20,20 @@ namespace J2534
             }
         }
 
-        public void RemoveScreen(Predicate<J2534Message> ComparerAsKey)
+        public void RemoveScreen(Predicate<J2534Message> ComparerHandle)
         {
             lock (LOCK)
-                Screens.Remove(Screens.Find(Screen => Screen.Comparer == ComparerAsKey));
+                Screens.Remove(Screens.Find(Screen => Screen.ComparerHandle == ComparerHandle));
         }
 
-        public void ExtractFrom(List<J2534Message> Messages)
+        public void Sift(List<J2534Message> Messages)
         {
             Messages.ForEach(Message =>
             {
                 lock (LOCK)
                     foreach (FilterScreen Screen in Screens)
                     {
-                        if (Screen.Comparer(Message))
+                        if (Screen.ComparerHandle(Message))
                         {
                             Screen.Messages.Add(Message);
                             break;
@@ -42,17 +42,23 @@ namespace J2534
             });
         }
 
-        public int ScreenMessageCount(Predicate<J2534Message> ComparerAsKey)
+        public int ScreenMessageCount(Predicate<J2534Message> ComparerHandle)
         {
             lock (LOCK) //This will throw an exception if predicate is not found.  That is probably best.
-                return Screens.Find(Screen => Screen.Comparer == ComparerAsKey).Messages.Count;
+                return Screens.Find(Screen => Screen.ComparerHandle == ComparerHandle).Messages.Count;
         }
 
-        public List<J2534Message> EmptyScreen(Predicate<J2534Message> ComparerAsKey, bool Remove)
+        /// <summary>
+        /// Returns all messages that been matched by 'ComparerHandle' and empties the buffer
+        /// </summary>
+        /// <param name="ComparerHandle">Comparison predicate to match messages</param>
+        /// <param name="Remove">Removes the filter screen when true</param>
+        /// <returns></returns>
+        public List<J2534Message> EmptyScreen(Predicate<J2534Message> ComparerHandle, bool Remove)
         {
             lock (LOCK)
             {
-                FilterScreen Screen = Screens.Find(_Screen => _Screen.Comparer == ComparerAsKey);
+                FilterScreen Screen = Screens.Find(_Screen => _Screen.ComparerHandle == ComparerHandle);
                 if (Remove)
                     Screens.Remove(Screen);
                 else
@@ -66,11 +72,11 @@ namespace J2534
     {
         public int Priority { get; set; }
         public List<J2534Message> Messages = new List<J2534Message>();
-        public Predicate<J2534Message> Comparer;
-        public FilterScreen(int Priority, Predicate<J2534Message> Comparer)
+        public Predicate<J2534Message> ComparerHandle;
+        public FilterScreen(int Priority, Predicate<J2534Message> ComparerHandle)
         {
             this.Priority = Priority;
-            this.Comparer = Comparer;
+            this.ComparerHandle = ComparerHandle;
         }
     }
 }

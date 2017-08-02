@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SAE
+namespace SAE_old
 {
-    public class OBDMessage
+    public class SAEMessage
     {
 
         public enum OBD_PARSE_ERROR
@@ -35,7 +35,7 @@ namespace SAE
         public OBD_PARSE_ERROR Error_Code { get; private set; }
         public bool IsValid { get; private set; }
 
-        public OBDMessage(J2534.J2534PROTOCOL Protocol)
+        public SAEMessage(J2534.J2534PROTOCOL Protocol)
         {
             SAEData = Array.Empty<byte>();
             SAEMode = new SAEModeData();
@@ -44,7 +44,7 @@ namespace SAE
             IsValid = true;
         }
 
-        public OBDMessage(byte[] RawMessage, J2534.J2534PROTOCOL Protocol)
+        public SAEMessage(byte[] RawMessage, J2534.J2534PROTOCOL Protocol)
         {
             SAEData = Array.Empty<byte>();
             SAEMode = new SAEModeData();
@@ -75,7 +75,7 @@ namespace SAE
                 byte0 |= J1850_h_bit ? (byte)0x10 : (byte)0x00;
                 byte0 |= J1850_k_bit ? (byte)0x08 : (byte)0x00;
                 byte0 |= J1850_y_bit ? (byte)0x04 : (byte)0x00;
-                byte0 |= (byte)J1850_zz;
+                byte0 |= (byte)(J1850_zz &  0x03);
                 return byte0;
             }
             set
@@ -168,6 +168,37 @@ namespace SAE
             }
         }
 
+        //public bool UsePIDByte
+        //{
+        //    get
+        //    {
+        //        switch (SAEMode.BaseMode)
+        //        {
+        //            case SAEModes.REQ_DIAG_DATA:                //0x01                        
+        //            case SAEModes.REQ_FREEZE_FRAME_DATA:        //0x02
+        //                return true;
+        //            case SAEModes.REQ_EMISSION_DIAG_DATA:       //0x03
+        //            case SAEModes.CLEAR_EMISSION_DIAG_DATA:     //0x04
+        //                return false;
+
+        //            case SAEModes.REQ_O2_MON_RESULTS:           //0x05
+        //            case SAEModes.REQ_SYSTEM_MON_RESULTS:       //0x06
+        //            case SAEModes.REQ_CURRENT_DTC:              //0x07
+        //            case SAEModes.REQ_SYSTEM_CTL:               //0x08
+        //            case SAEModes.REQ_VEHICLE_INFO:             //0x09
+        //            case SAEModes.REQ_PERMANENT_EMISSION_DTC:   //0x0A
+        //            case SAEModes.INITIATE_DIAG_OP:             //0x10
+        //            case SAEModes.MODULE_RESET:                 //0x11
+        //            case SAEModes.REQ_FREEZE_FRAME:             //0x12
+        //            case SAEModes.REQ_DTC:                      //0x13
+        //            case SAEModes.CLEAR_DIAG_INFO:              //0x14
+        //            case SAEModes.DTC_STATUS:                   //0x15
+        //            case SAEModes.REQ_DTC_BY_STATUS:            //0x16
+        //            case SAEModes.NORMAL_OPERATION:             //0x20
+        //        }
+        //    }
+        //}
+
         private void parse_raw_message()
         {
             switch (Network)
@@ -253,10 +284,7 @@ namespace SAE
         {
             get
             {
-                if (SAEMode.IsJ1979)
-                    return (new byte[2] { SAEMode, (byte)PID }).Concat(SAEData).ToArray();
-                else
-                    return (new byte[1] { SAEMode }).Concat(SAEData).ToArray();
+                return (new byte[1] { SAEMode }).Concat(SAEData).ToArray();
             }
             set
             {
@@ -279,27 +307,11 @@ namespace SAE
                             SAEData = Array.Empty<byte>();
                             SAEResponse = Enum.IsDefined(typeof(SAE_responses), (int)value.Last()) ? (SAE_responses)value.Last() : SAE_responses.MANUFACTURER_SPECIFIC;
                             break;
-                        //case 3:
-                        //    SAEMode = Enum.IsDefined(typeof(SAEModes), (value[1] + 0x40)) ? (SAEModes)(value[1] + 0x40) : SAEModes.UNKNOWN_MODE;
-                        //    Data = Array.Empty<byte>();
-                        //    SAEResponse = Enum.IsDefined(typeof(SAE_responses), (int)value.Last()) ? (SAE_responses)value.Last() : SAE_responses.MANUFACTURER_SPECIFIC;
-                        //    break;
                         default:
-                            //SAEMode = Enum.IsDefined(typeof(SAEModes), (value[1] + 0x40)) ? (SAEModes)(value[1] + 0x40) : SAEModes.UNKNOWN_MODE;
                             SAEData = value.Skip(1).Take(value.Length - 2).ToArray();
                             SAEResponse = Enum.IsDefined(typeof(SAE_responses), (int)value.Last()) ? (SAE_responses)value.Last() : SAE_responses.MANUFACTURER_SPECIFIC;
                             break;
                     }
-                }
-                else if (SAEMode.IsJ1979)
-                {
-                    if(value.Length < 3)
-                    {
-                        IsValid = false;
-                        return;
-                    }
-                    PID = value[1];
-                    SAEData = value.Skip(2).ToArray();
                 }
                 else
                 {
@@ -309,7 +321,7 @@ namespace SAE
             }
         }
 
-        public static implicit operator byte[](OBDMessage Message)
+        public static implicit operator byte[](SAEMessage Message)
         {
             return Message.RawMessage;
         }
@@ -318,27 +330,13 @@ namespace SAE
         {
             get
             {
-                if (SAEMode.IsJ1979)
+                return (_J2534Message =>
                 {
-                    return (_J2534Message =>
-                    {
-                        OBDMessage RxMessage = new OBDMessage(_J2534Message.Data, J2534.J2534PROTOCOL.CAN) { Network = this.Network };
-                        return (RxMessage.TargetAddress == SourceAddress &&
-                                RxMessage.SAEMode.BaseMode == SAEMode &&
-                                RxMessage.SAEMode.IsResponse &&
-                                RxMessage.PID == PID);
-                    });
-                }
-                else
-                {
-                    return (_J2534Message =>
-                    {
-                        OBDMessage RxMessage = new OBDMessage(_J2534Message.Data, J2534.J2534PROTOCOL.CAN) { Network = this.Network };
-                        return (RxMessage.TargetAddress == SourceAddress &&
-                                RxMessage.SAEMode.BaseMode == SAEMode &&
-                                RxMessage.SAEMode.IsResponse);
-                    });
-                }
+                    SAEMessage RxMessage = new SAEMessage(_J2534Message.Data, J2534.J2534PROTOCOL.CAN) { Network = this.Network };
+                    return (RxMessage.TargetAddress == SourceAddress &&
+                            RxMessage.SAEMode.BaseMode == SAEMode &&
+                            RxMessage.SAEMode.IsResponse);
+                });
             }
         }
     }

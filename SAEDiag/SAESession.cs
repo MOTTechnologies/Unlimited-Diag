@@ -14,8 +14,8 @@ namespace SAE
         private int _tool_address;
         public int target_address { get; set; }
         private SAE_NETWORK network;
-        private OBDMessage TxMessage;
-        private OBDMessage RxMessage;
+        private SAEMessage TxMessage;
+        private SAEMessage RxMessage;
 
         public string Status { get; private set; }
         public List<ModuleData> OBDModuleList;
@@ -23,8 +23,8 @@ namespace SAE
         public J1979Session(Channel SessionChannel, bool Init)
         {
             session_channel = SessionChannel;
-            TxMessage = new OBDMessage(session_channel.ProtocolID);
-            RxMessage = new OBDMessage(session_channel.ProtocolID);
+            TxMessage = new SAEMessage(session_channel.ProtocolID);
+            RxMessage = new SAEMessage(session_channel.ProtocolID);
             OBDModuleList = new List<ModuleData>();
 
             if(Init)
@@ -66,17 +66,17 @@ namespace SAE
         private void ValidatePIDS(ModuleData Module)
         {
             GetMessageResults Results;
-            for(byte PID = 0x20;PID < 0xD0;PID += 0x20)
+            for(byte PID_record_num = 0x20;PID_record_num < 0xD0;PID_record_num += 0x20)
             {
-                //If the next PID window is supported, then request it
-                if (Module.ValidatedPIDS.Last().Number == PID)
+                //If the next PID record is supported, then request it
+                if (Module.ValidatedPIDS.Last().Number == PID_record_num)
                 {
                     TxMessage.SAEMode = SAEModes.REQ_DIAG_DATA;
-                    TxMessage.PID = PID;
+                    TxMessage.PID = PID_record_num;
                     TxMessage.TargetAddress = Module.Address;
                     Results = session_channel.MessageTransaction(TxMessage, 1, TxMessage.DefaultRxComparer);
                     if(Results.Status == J2534ERR.STATUS_NOERROR)
-                        Module.Parse_PID_Validation_Bytes(PID, Results.Messages[0].Data);
+                        Module.Parse_PID_Validation_Bytes(PID_record_num, Results.Messages[0].Data);
                 }
                 else
                     break;                

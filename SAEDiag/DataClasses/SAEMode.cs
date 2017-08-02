@@ -42,6 +42,18 @@ namespace SAE
             }
         }
 
+        public SAEModes ResponseMode
+        {
+            get
+            {
+                return (SAEModes)(mode_int | 0x40);
+            }
+            set
+            {
+                mode_int = (mode_int & 0x40) | ((int)value & 0x3F);
+            }
+        }
+
         public bool IsResponse
         {
             get

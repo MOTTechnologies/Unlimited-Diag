@@ -1,6 +1,6 @@
 ﻿namespace UnlimitedDiag
 {
-    partial class Root_Form
+    partial class Main_Form
     {
         /// <summary>
         /// Required designer variable.

@@ -11,7 +11,8 @@ namespace J2534
         private int ChannelID;
         private J2534HeapMessageArray HeapMessageArray;
         private Sieve MessageSieve = new Sieve();
-        public bool IsConnected { get; private set; }
+        public J2534ERR ConnectionStatus { get; private set; }
+        public bool IsOpen { get; private set; }
         public J2534PROTOCOL ProtocolID { get; private set; }
         public int Baud { get; private set; }
         public J2534CONNECTFLAG ConnectFlags { get; internal set; }
@@ -37,20 +38,18 @@ namespace J2534
 
         private void Connect()
         {
-            J2534ERR Status;
-            
             J2534HeapInt ChannelID = new J2534HeapInt();
 
             lock (Device.Library.API_LOCK)
             {
-                Status = (J2534ERR)Device.Library.API.Connect(Device.DeviceID, (int)ProtocolID, (int)ConnectFlags, Baud, ChannelID);
-                if(Status == J2534ERR.STATUS_NOERROR)
+                ConnectionStatus = (J2534ERR)Device.Library.API.Connect(Device.DeviceID, (int)ProtocolID, (int)ConnectFlags, Baud, ChannelID);
+                if(ConnectionStatus == J2534ERR.STATUS_NOERROR)
                 {
-                    IsConnected = true;
+                    IsOpen = true;
                     this.ChannelID = ChannelID;
                 }
-                else
-                    throw new J2534Exception(Status, Device.Library.GetLastError());
+                //else
+                //    throw new J2534Exception(Status, Device.Library.GetLastError());
             }
         }
 
@@ -60,7 +59,7 @@ namespace J2534
 
             lock (Device.Library.API_LOCK)
             {
-                IsConnected = false;
+                IsOpen = false;
                 Status = (J2534ERR)Device.Library.API.Disconnect(ChannelID);
                 if (Status != J2534ERR.STATUS_NOERROR)                    
                     throw new J2534Exception(Status, Device.Library.GetLastError());
@@ -122,28 +121,28 @@ namespace J2534
         }
 
         //Thread safety in this method assumes that each thread will have unique comparers
-        public GetMessageResults GetMessages(int NumMsgs, int Timeout, Predicate<J2534Message> ComparerAsKey, bool Remove)
+        public GetMessageResults GetMessages(int NumMsgs, int Timeout, Predicate<J2534Message> ComparerHandle, bool Remove)
         {
             bool GetMoreMessages;
-            Stopwatch SW = new Stopwatch();
-            SW.Start();
+            Stopwatch FunctionTimer = new Stopwatch();
+            FunctionTimer.Start();
 
             do
             {
                 GetMessageResults RxMessages = GetMessages(CONST.HEAPMESSAGEBUFFERSIZE, 0);
                 if (RxMessages.Status == J2534ERR.STATUS_NOERROR ||
                     RxMessages.Status == J2534ERR.BUFFER_EMPTY)
-                    MessageSieve.ExtractFrom(RxMessages.Messages);
+                    MessageSieve.Sift(RxMessages.Messages);
                 else
                     throw new J2534Exception(RxMessages.Status, Device.Library.GetLastError());
-                GetMoreMessages = (MessageSieve.ScreenMessageCount(ComparerAsKey) < NumMsgs);
+                GetMoreMessages = (MessageSieve.ScreenMessageCount(ComparerHandle) < NumMsgs);
 
-            } while (GetMoreMessages && (SW.ElapsedMilliseconds < Timeout));
+            } while (GetMoreMessages && (FunctionTimer.ElapsedMilliseconds < Timeout));
 
             if(GetMoreMessages)
-                return new GetMessageResults(MessageSieve.EmptyScreen(ComparerAsKey, Remove), J2534ERR.TIMEOUT);
+                return new GetMessageResults(MessageSieve.EmptyScreen(ComparerHandle, Remove), J2534ERR.TIMEOUT);
             else
-                return new GetMessageResults(MessageSieve.EmptyScreen(ComparerAsKey, Remove), J2534ERR.STATUS_NOERROR);
+                return new GetMessageResults(MessageSieve.EmptyScreen(ComparerHandle, Remove), J2534ERR.STATUS_NOERROR);
         }
 
         /// <summary>
