@@ -460,5 +460,10 @@ namespace J2534
             }
             return Device.MeasureBatteryVoltage();
         }
+
+        public string GetLastError()
+        {
+            return Device.Library.GetLastError();
+        }
     }
 }

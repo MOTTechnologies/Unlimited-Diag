@@ -202,7 +202,7 @@ namespace SAE
                 else
                 {
                     ResponseByte = Enum.IsDefined(typeof(SAE_responses), value.Last()) ? (SAE_responses)value.Last() : SAE_responses.MANUFACTURER_SPECIFIC;
-                    Data = value.Skip(1).ToArray();
+                    Data = value.Skip(1 + RxDataIndex).ToArray();
                 }
             }
         }

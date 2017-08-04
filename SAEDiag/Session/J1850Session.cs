@@ -7,8 +7,13 @@ namespace SAE.Session
     //Base class that all J1850 sessions are built from
     abstract class J1850Session
     {
+        protected J2534Device device;
         protected Channel channel;
+        protected J2534PROTOCOL SessionProtocol;
+        protected J2534TXFLAG SessionTxFlags;
+
         protected byte[] default_message_prototype;
+
 
         public SAEMessage SAETxRx(SAEMessage Message, int RxDataIndex)
         {
@@ -34,17 +39,34 @@ namespace SAE.Session
 
         public void SAETx(int Addr, byte Mode, List<byte[]> Data)
         {
-            throw new NotImplementedException();
-        }
+            J1850Message message = new J1850Message(default_message_prototype);
+            message.TargetAddress = Addr;
+            message.SAEMode = Mode;
 
-        public List<byte[]> SAERx(int Addr, byte Mode, int NumOfMsgs)
-        {
-            throw new NotImplementedException();
+            List<J2534Message> J2534Messages = new List<J2534Message>();
+
+            Data.ForEach(data =>
+            {
+                message.Data = data;
+                J2534Messages.Add(new J2534Message(SessionProtocol, SessionTxFlags, message.RawMessage));
+            });
+
+            J2534ERR Status = channel.SendMessages(J2534Messages);
+            if(Status != J2534ERR.STATUS_NOERROR)
+            {
+                throw new J2534Exception(Status, channel.GetLastError());
+            }
         }
 
         public object CreateRxHandle(int Addr, byte Mode, byte[] Params)
         {
-            throw new NotImplementedException();
+            J1850Message message = new J1850Message(default_message_prototype);
+            message.TargetAddress = Addr;
+            message.SAEMode = Mode;
+            message.Data = Params;
+            message.RxDataIndex = Params.Length;
+
+            return message.DefaultRxComparer;
         }
 
         public void DestroyRxHandle(object Handle)
@@ -54,7 +76,7 @@ namespace SAE.Session
 
         public List<byte[]> SAERx(object RxHandle, int NumOfMsgs, int Timeout, bool DestroyHandle)
         {
-
+            throw new NotImplementedException();
         }
     }
 }
